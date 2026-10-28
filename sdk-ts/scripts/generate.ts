@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import type { OpenApiDocument, Operation } from '@veriport/shared';
 
 // The shared package is TypeScript source without a "type" field: tsx serves it as CommonJS, whose re-exports an ESM named import cannot see; require() sees them all.
-const { API_VERSION, IBAN_COUNTRIES, IBAN_REGISTRY, VAT_COUNTRIES, VAT_FORMATS, openApiDocument } = createRequire(import.meta.url)('@veriport/shared') as typeof import('@veriport/shared');
+const { API_VERSION, IBAN_COUNTRIES, IBAN_REGISTRY, REQUEST_MAX_BYTES, VAT_COUNTRIES, VAT_FORMATS, openApiDocument } = createRequire(import.meta.url)('@veriport/shared') as typeof import('@veriport/shared');
 
 type Schema = Record<string, unknown>;
 
@@ -56,7 +56,7 @@ function tsType(schema: Schema | undefined, indent = ''): string {
 }
 
 function generateOpenApi(doc: OpenApiDocument): string {
-  const lines: string[] = [HEADER, `export const API_VERSION = ${JSON.stringify(doc.info.version)};`, `export const DEFAULT_BASE_URL = ${JSON.stringify(doc.servers[0].url)};`, ''];
+  const lines: string[] = [HEADER, `export const API_VERSION = ${JSON.stringify(doc.info.version)};`, `export const DEFAULT_BASE_URL = ${JSON.stringify(doc.servers[0].url)};`, '/** The largest request body the API accepts (bytes); a larger one is refused by the hosting platform before the API runs. */', `export const REQUEST_MAX_BYTES = ${REQUEST_MAX_BYTES};`, ''];
   lines.push('// ---- Component schemas');
   for (const [name, schema] of Object.entries(doc.components.schemas)) {
     lines.push(`${schema.description ? `/** ${String(schema.description).replace(/\n/g, ' ')} */\n` : ''}export type ${name} = ${tsType(schema as Schema)};`, '');
@@ -71,16 +71,18 @@ function generateOpenApi(doc: OpenApiDocument): string {
     const params = (op.parameters ?? []).filter((p) => p.in !== 'header');
     const paramsType = params.length ? `{\n${params.map((p) => `  /** ${p.description.replace(/\n/g, ' ')} */\n  ${p.name}${p.required ? '' : '?'}: ${tsType(p.schema as Schema, '  ')};`).join('\n')}\n}` : 'Record<string, never>';
     lines.push(`/** ${op.summary} — ${method.toUpperCase()} ${path}. Tiers: ${op['x-tiers'].join(', ')}. Cost: ${op['x-cost'].replace(/\n/g, ' ')} */`, `export type ${P}Params = ${paramsType};`);
-    const body = op.requestBody?.content['application/json'].schema as Schema | undefined;
+    const body = op.requestBody?.content['application/json']?.schema as Schema | undefined;
+    // Operations that take a file (the e-invoice validate and parse calls): the media types they accept.
+    const bodyTypes = Object.keys(op.requestBody?.content ?? {});
     lines.push(`export type ${P}Body = ${body ? tsType(body) : 'never'};`);
     const ok = op.responses['200']?.content?.['application/json']?.schema as Schema | undefined;
     lines.push(`export type ${P}Response = ${ok ? tsType(ok) : 'unknown'};`, '');
     const anonymous = Boolean(op.security?.some((s) => Object.keys(s).length === 0));
-    table.push(`  ${id}: { method: ${JSON.stringify(method.toUpperCase())}, path: ${JSON.stringify(path)}, pathParams: ${JSON.stringify(params.filter((p) => p.in === 'path').map((p) => p.name))}, query: ${JSON.stringify(params.filter((p) => p.in === 'query').map((p) => p.name))}, hasBody: ${Boolean(body)}, anonymous: ${anonymous}, tiers: ${JSON.stringify(op['x-tiers'])}, cost: ${JSON.stringify(op['x-cost'])} },`);
+    table.push(`  ${id}: { method: ${JSON.stringify(method.toUpperCase())}, path: ${JSON.stringify(path)}, pathParams: ${JSON.stringify(params.filter((p) => p.in === 'path').map((p) => p.name))}, query: ${JSON.stringify(params.filter((p) => p.in === 'query').map((p) => p.name))}, hasBody: ${Boolean(body)}, bodyTypes: ${JSON.stringify(bodyTypes)}, anonymous: ${anonymous}, tiers: ${JSON.stringify(op['x-tiers'])}, cost: ${JSON.stringify(op['x-cost'])} },`);
     iface.push(`  ${id}: { params: ${P}Params; body: ${P}Body; response: ${P}Response };`);
   }
   lines.push('/** Each operation: its parameter, body and response types. */', `export interface Operations {\n${iface.join('\n')}\n}`, '');
-  lines.push('export interface OperationSpec { method: "GET" | "POST"; path: string; pathParams: string[]; query: string[]; hasBody: boolean; anonymous: boolean; tiers: string[]; cost: string }', '');
+  lines.push('export interface OperationSpec { method: "GET" | "POST"; path: string; pathParams: string[]; query: string[]; hasBody: boolean; bodyTypes: string[]; anonymous: boolean; tiers: string[]; cost: string }', '');
   lines.push('/** The routing table of the client: how each operation is sent. */', `export const OPERATIONS: Record<keyof Operations, OperationSpec> = {\n${table.join('\n')}\n};`, '');
   return lines.join('\n');
 }
@@ -110,7 +112,7 @@ function generatePythonTables(): string {
     const r = IBAN_REGISTRY[c];
     return `    ${JSON.stringify(c)}: {"name": ${JSON.stringify(r.name)}, "length": ${r.length}, "bban": ${JSON.stringify(r.bban)}, "sepa": ${r.sepa ? 'True' : 'False'}, "sepa_since": ${r.sepaSince ? JSON.stringify(r.sepaSince) : 'None'}, "bank_id": ${r.bankId ? `(${r.bankId[0]}, ${r.bankId[1]})` : 'None'}, "branch_id": ${r.branchId ? `(${r.branchId[0]}, ${r.branchId[1]})` : 'None'}},`;
   });
-  return `# Generated by packages/sdk-ts/scripts/generate.ts from the Veriport shared tables (API version ${API_VERSION}). Do not edit.\n\nAPI_VERSION = ${JSON.stringify(API_VERSION)}\n\n# The structure of each EU VAT number after its two-letter prefix (VIES FAQ, Q11).\nVAT_FORMATS = {\n${vat.join('\n')}\n}\n\n# The SWIFT IBAN Registry (ISO 13616): length, BBAN notation, SEPA flag, bank and branch positions (0-based start, length).\nIBAN_REGISTRY = {\n${iban.join('\n')}\n}\n`;
+  return `# Generated by packages/sdk-ts/scripts/generate.ts from the Veriport shared tables (API version ${API_VERSION}). Do not edit.\n\nAPI_VERSION = ${JSON.stringify(API_VERSION)}\n\n# The largest request body the API accepts (bytes); a larger one is refused by the hosting platform before the API runs.\nREQUEST_MAX_BYTES = ${REQUEST_MAX_BYTES}\n\n# The structure of each EU VAT number after its two-letter prefix (VIES FAQ, Q11).\nVAT_FORMATS = {\n${vat.join('\n')}\n}\n\n# The SWIFT IBAN Registry (ISO 13616): length, BBAN notation, SEPA flag, bank and branch positions (0-based start, length).\nIBAN_REGISTRY = {\n${iban.join('\n')}\n}\n`;
 }
 
 const files: Array<[string, string]> = [

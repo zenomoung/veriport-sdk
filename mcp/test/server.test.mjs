@@ -9,12 +9,24 @@ import { test } from 'node:test';
 async function fakeApi() {
   const seen = [];
   const server = createServer((req, res) => {
-    seen.push({ url: req.url, auth: req.headers.authorization ?? null });
     const url = new URL(req.url, 'http://x');
     const json = (status, body, headers = {}) => {
       res.writeHead(status, { 'Content-Type': 'application/json', ...headers });
       res.end(JSON.stringify(body));
     };
+    if (url.pathname === '/api/v1/einvoice/validate') {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        const body = Buffer.concat(chunks);
+        seen.push({ url: req.url, auth: req.headers.authorization ?? null, method: req.method, contentType: req.headers['content-type'], body });
+        if (body.subarray(0, 4).toString() === '%PDF') return json(200, { valid: true, profile: 'en16931', syntax: 'cii', container: 'pdf', attachment: 'factur-x.xml', errors: [], warnings: [] });
+        if (body.toString().includes('<broken/>')) return json(200, { valid: false, profile: 'xrechnung', syntax: 'ubl', container: 'xml', attachment: null, errors: [{ rule: 'BR-DE-15', severity: 'fatal', path: '/ubl:Invoice', message: 'Das Element "Buyer reference" (BT-10) muss übermittelt werden.' }], warnings: [{ rule: 'BR-CL-23' }] });
+        return json(422, { code: 'einvoice_unreadable', detail: 'The XML is not well-formed.' });
+      });
+      return;
+    }
+    seen.push({ url: req.url, auth: req.headers.authorization ?? null });
     if (url.pathname === '/api/v1/vat/validate') {
       if (url.searchParams.get('number') === 'DE000') return json(429, { code: 'rate_limited', detail: 'slow down', retryAfter: 1 }, { 'Retry-After': '1' });
       if (url.searchParams.get('number') === 'IT111') return json(503, { code: 'vies_unavailable', detail: 'Italy is down', retryAfter: 30 });
@@ -60,7 +72,7 @@ function client(env) {
   };
 }
 
-test('initialize, tools/list, tools/call over stdio against a fake API, with the limit states as error results', async () => {
+test('initialize, tools/list, tools/call (validate_einvoice included) over stdio against a fake API, with the limit states as error results', async () => {
   const api = await fakeApi();
   const c = client({ VERIPORT_API_BASE: api.base, VERIPORT_API_KEY: 'vp_live_test' });
   try {
@@ -69,7 +81,7 @@ test('initialize, tools/list, tools/call over stdio against a fake API, with the
     assert.ok(init.result.capabilities.tools);
     c.notify('notifications/initialized');
     const list = await c.request('tools/list', {});
-    assert.deepEqual(list.result.tools.map((t) => t.name), ['validate_vat', 'validate_iban', 'vat_rate']);
+    assert.deepEqual(list.result.tools.map((t) => t.name), ['validate_vat', 'validate_iban', 'vat_rate', 'validate_einvoice']);
     for (const t of list.result.tools) assert.equal(t.inputSchema.type, 'object');
 
     const vat = await c.request('tools/call', { name: 'validate_vat', arguments: { number: 'DE136695976' } });
@@ -99,6 +111,25 @@ test('initialize, tools/list, tools/call over stdio against a fake API, with the
     assert.equal(bad.error.code, -32601);
     const ping = await c.request('ping', {});
     assert.deepEqual(ping.result, {});
+
+    const broken = await c.request('tools/call', { name: 'validate_einvoice', arguments: { xml: '<ubl:Invoice><broken/></ubl:Invoice>' } });
+    assert.equal(broken.result.isError, undefined);
+    assert.equal(broken.result.structuredContent.valid, false);
+    assert.match(broken.result.content[0].text, /^INVALID: profile xrechnung, syntax ubl; 1 error\(s\), 1 warning\(s\)\.\n- BR-DE-15 at \/ubl:Invoice: Das Element/);
+    const posted = api.seen.find((x) => x.method === 'POST');
+    assert.equal(posted.url, '/api/v1/einvoice/validate');
+    assert.equal(posted.contentType, 'application/xml');
+    assert.equal(posted.auth, 'Bearer vp_live_test');
+    const pdf = await c.request('tools/call', { name: 'validate_einvoice', arguments: { pdf_base64: Buffer.from('%PDF-1.7\n%%EOF\n').toString('base64') } });
+    assert.match(pdf.result.content[0].text, /^VALID: profile en16931, syntax cii, XML embedded as factur-x\.xml/);
+    assert.equal(api.seen.filter((x) => x.method === 'POST')[1].contentType, 'application/pdf');
+    assert.equal(api.seen.filter((x) => x.method === 'POST')[1].body.subarray(0, 4).toString(), '%PDF');
+    const unreadable = await c.request('tools/call', { name: 'validate_einvoice', arguments: { xml: 'not xml' } });
+    assert.equal(unreadable.result.isError, true);
+    assert.match(unreadable.result.content[0].text, /einvoice_unreadable/);
+    const neither = await c.request('tools/call', { name: 'validate_einvoice', arguments: {} });
+    assert.equal(neither.result.isError, true);
+    assert.match(neither.result.content[0].text, /exactly one of xml or pdf_base64/);
   } finally {
     c.close();
     api.server.close();

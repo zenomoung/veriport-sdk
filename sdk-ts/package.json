@@ -1,63 +1,32 @@
 {
   "name": "@veriport/sdk",
   "version": "0.1.0",
-  "description": "TypeScript client for the Veriport API (EU VAT number validation on VIES with a dated cache, EU VAT rates, IBAN validation, French company data), generated from its OpenAPI document, plus MIT offline helpers for VAT number structure and the IBAN mod-97 check.",
+  "description": "TypeScript client for the Veriport API (EU VAT number validation on VIES with a dated cache, EU VAT rates, IBAN validation, French company data, e-invoices: XRechnung, ZUGFeRD / Factur-X and Peppol BIS created, validated against the official rules and parsed), generated from its OpenAPI document, plus MIT offline helpers for VAT number structure and the IBAN mod-97 check.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./offline": {
-      "types": "./dist/offline.d.ts",
-      "import": "./dist/offline.js"
-    }
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./offline": { "types": "./dist/offline.d.ts", "import": "./dist/offline.js" }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "README.md", "LICENSE"],
   "sideEffects": false,
-  "engines": {
-    "node": ">=18"
-  },
-  "keywords": [
-    "vat",
-    "vies",
-    "vat-validation",
-    "iban",
-    "iban-validation",
-    "mod97",
-    "sepa",
-    "vat-rates",
-    "siren",
-    "siret",
-    "eu-vat",
-    "api-client"
-  ],
-  "homepage": "https://veriport.io/docs",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/zenomoung/veriport-sdk",
-    "directory": "sdk-ts"
-  },
+  "engines": { "node": ">=18" },
+  "keywords": ["vat", "vies", "vat-validation", "iban", "iban-validation", "mod97", "sepa", "vat-rates", "siren", "siret", "eu-vat", "api-client", "e-invoice", "einvoicing", "xrechnung", "zugferd", "factur-x", "peppol", "en16931"],
+  "homepage": "https://github.com/zenomoung/veriport-sdk#readme",
+  "repository": { "type": "git", "url": "https://github.com/zenomoung/veriport-sdk", "directory": "sdk-ts" },
+  "bugs": { "url": "https://github.com/zenomoung/veriport-sdk/issues" },
   "scripts": {
     "generate": "echo 'generated files are refreshed from the Veriport monorepo (scripts/generate.ts needs @veriport/shared); edit them there' && exit 1",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.mts",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "pnpm generate --check && pnpm build && pnpm test"
   },
   "devDependencies": {
     "@types/node": "^22",
     "tsx": "^4.19.2",
     "typescript": "^5.9.0"
-  },
-  "bugs": {
-    "url": "https://github.com/zenomoung/veriport-sdk/issues"
   }
 }

@@ -1,11 +1,11 @@
-"""Veriport: the EU counterparty check as an API (VAT number on VIES, French company, IBAN) and EU VAT rates, every answer dated and sourced. https://veriport.io/docs"""
+"""Veriport: the EU counterparty check as an API (VAT number on VIES, French company, IBAN), EU VAT rates, and compliant e-invoices (XRechnung, ZUGFeRD / Factur-X, Peppol BIS: create, validate, parse), every answer dated and sourced. https://veriport.io/docs"""
 from ._tables import API_VERSION, IBAN_REGISTRY, VAT_FORMATS
-from .client import DEFAULT_BASE_URL, AsyncVeriport, CallMeta, Veriport
+from .client import DEFAULT_BASE_URL, AsyncVeriport, CallMeta, EInvoiceFile, Veriport
 from .errors import VeriportError
 from .offline import IbanCheck, VatStructure, check_vat_structure, format_iban, iban_check_digits, iban_mod97, normalise_iban, normalise_vat, validate_iban_offline
 
 __version__ = "0.1.0"
-__all__ = ["Veriport", "AsyncVeriport", "VeriportError", "CallMeta", "DEFAULT_BASE_URL", "API_VERSION", "VAT_FORMATS", "IBAN_REGISTRY", "VatStructure", "IbanCheck", "check_vat_structure", "normalise_vat", "validate_iban_offline", "iban_mod97", "iban_check_digits", "normalise_iban", "format_iban", "check_vat", "check_iban"]
+__all__ = ["Veriport", "AsyncVeriport", "VeriportError", "CallMeta", "EInvoiceFile", "DEFAULT_BASE_URL", "API_VERSION", "VAT_FORMATS", "IBAN_REGISTRY", "VatStructure", "IbanCheck", "check_vat_structure", "normalise_vat", "validate_iban_offline", "iban_mod97", "iban_check_digits", "normalise_iban", "format_iban", "check_vat", "check_iban"]
 
 
 def check_vat(number: str, client: "Veriport | None" = None, country: "str | None" = None, requester: "str | None" = None) -> dict:

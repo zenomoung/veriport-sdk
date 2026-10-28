@@ -1,6 +1,6 @@
 # @veriport/sdk
 
-TypeScript client for the [Veriport API](https://veriport.io/docs): EU VAT number validation on VIES with a dated cache, EU VAT rates dated and sourced per row, IBAN validation from the SWIFT registry, French company data by SIREN/SIRET. Generated from the API's [OpenAPI document](https://veriport.io/openapi.json), no runtime dependency, works in Node 18+, Deno, Bun, browsers and edge runtimes.
+TypeScript client for the [Veriport API](https://veriport.io/docs): EU VAT number validation on VIES with a dated cache, EU VAT rates dated and sourced per row, IBAN validation from the SWIFT registry, French company data by SIREN/SIRET, and compliant e-invoices (XRechnung, ZUGFeRD / Factur-X, Peppol BIS: create, validate against the official rules, parse). Generated from the API's [OpenAPI document](https://veriport.io/openapi.json), no runtime dependency, works in Node 18+, Deno, Bun, browsers and edge runtimes.
 
 It also ships the **offline** parts of the checks under the MIT licence, so that an impossible VAT number or a malformed IBAN never costs a call:
 
@@ -36,6 +36,27 @@ Every operation of the document is reachable by its `operationId` with the gener
 ```ts
 const rows = await vp.call('listVatRates', { category: 'ebooks' });
 ```
+
+## E-invoices
+
+```ts
+import { readFile, writeFile } from 'node:fs/promises';
+
+// invoice JSON → XRechnung, ZUGFeRD / Factur-X PDF or Peppol BIS (20 calls; a retry with the same key is not charged twice)
+const file = await vp.createEInvoice({ format: 'xrechnung-ubl', ...invoice }, { idempotencyKey: invoice.number });
+await writeFile(file.filename ?? 'invoice.xml', file.bytes);
+console.log(file.validation); // "valid; profile=xrechnung; errors=0; warnings=0"
+
+// any e-invoice (XML text or the bytes of a hybrid PDF) → the official verdict (5 calls; works without a key)
+const report = await vp.validateEInvoice(await readFile('received.pdf'));
+for (const e of report.errors) console.log(e.rule, e.path, e.message);
+
+// a received e-invoice → the same invoice JSON, plus what the JSON leaves out; { as: 'pdf' } gives a readable copy
+const parsed = await vp.parseEInvoice(await readFile('received.xml', 'utf8'));
+console.log(parsed.invoice.number, parsed.notInJson);
+```
+
+A refusal throws `VeriportError`: `e.code === 'einvoice_unsupported'` with `e.feature` and `e.unsupported` (a field the writers do not produce is refused, never dropped), or `'einvoice_invalid'` with `e.violations` (the rule ids and JSON paths).
 
 ## Offline first, API second
 

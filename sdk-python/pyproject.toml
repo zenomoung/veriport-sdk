@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "veriport"
 version = "0.1.0"
-description = "Client for the Veriport API: EU VAT number validation on VIES with a dated cache, EU VAT rates dated and sourced, IBAN validation from the SWIFT registry, French company data by SIREN/SIRET. Offline helpers (VAT number structure, IBAN mod-97) included."
+description = "Client for the Veriport API: EU VAT number validation on VIES with a dated cache, EU VAT rates dated and sourced, IBAN validation from the SWIFT registry, French company data by SIREN/SIRET, e-invoices (XRechnung, ZUGFeRD / Factur-X, Peppol BIS: create, validate against the official rules, parse). Offline helpers (VAT number structure, IBAN mod-97) included."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
 authors = [{ name = "Janolab Studio LLC", email = "hello@veriport.io" }]
-keywords = ["vat", "vies", "vat-validation", "iban", "iban-validation", "mod97", "sepa", "vat-rates", "siren", "siret", "eu-vat"]
+keywords = ["vat", "vies", "vat-validation", "iban", "iban-validation", "mod97", "sepa", "vat-rates", "siren", "siret", "eu-vat", "e-invoice", "einvoicing", "xrechnung", "zugferd", "factur-x", "peppol", "en16931"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -27,6 +27,8 @@ test = ["pytest>=7"]
 [project.urls]
 Homepage = "https://veriport.io"
 Documentation = "https://veriport.io/docs"
+Repository = "https://github.com/zenomoung/veriport-sdk"
+Issues = "https://github.com/zenomoung/veriport-sdk/issues"
 OpenAPI = "https://veriport.io/openapi.json"
 Changelog = "https://veriport.io/changelog"
 

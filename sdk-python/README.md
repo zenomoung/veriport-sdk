@@ -31,6 +31,28 @@ print(company["name"], company["status"], company["source"]["primary"])
 
 Any operation of the [OpenAPI document](https://veriport.io/openapi.json): `vp.call("GET", "/vat/rates", params={"category": "ebooks"})`. Async: `AsyncVeriport` with the same methods, awaited.
 
+## E-invoices
+
+```python
+from pathlib import Path
+
+# invoice dict → XRechnung, ZUGFeRD / Factur-X PDF or Peppol BIS (20 calls; a retry with the same key is not charged twice)
+f = vp.create_einvoice({"format": "zugferd", **invoice}, idempotency_key=invoice["number"])
+Path(f.filename or "invoice.pdf").write_bytes(f.content)
+print(f.validation)  # "valid; profile=en16931; errors=0; warnings=0"
+
+# any e-invoice (XML text, or the bytes of a hybrid PDF) → the official verdict (5 calls; works without a key)
+report = vp.validate_einvoice(Path("received.xml").read_text())
+for e in report["errors"]:
+    print(e["rule"], e["path"], e["message"])
+
+# a received e-invoice → the same invoice dict plus what it leaves out; as_="pdf" gives a readable copy
+parsed = vp.parse_einvoice(Path("received.pdf").read_bytes())
+print(parsed["invoice"]["number"], parsed["notInJson"])
+```
+
+A refusal raises `VeriportError`: `e.code == "einvoice_unsupported"` with `e.feature` and `e.unsupported`, or `"einvoice_invalid"` with `e.violations`.
+
 ## Offline first, API second
 
 ```python

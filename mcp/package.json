@@ -1,37 +1,16 @@
 {
   "name": "@veriport/mcp",
   "version": "0.1.0",
-  "description": "MCP server (stdio) for the Veriport API: validate_vat (EU VAT number on VIES with provenance), validate_iban (five checks, SEPA flag), vat_rate (dated, sourced EU VAT rates). No dependency, Node 18+.",
+  "description": "MCP server (stdio) for the Veriport API: validate_vat (EU VAT number on VIES with provenance), validate_iban (five checks, SEPA flag), vat_rate (dated, sourced EU VAT rates), validate_einvoice (XRechnung, Peppol BIS, Factur-X / ZUGFeRD against the official schema and schematron). No dependency, Node 18+.",
   "license": "MIT",
   "type": "module",
-  "bin": {
-    "veriport-mcp": "./server.mjs"
-  },
-  "files": [
-    "server.mjs",
-    "README.md"
-  ],
-  "engines": {
-    "node": ">=18"
-  },
-  "keywords": [
-    "mcp",
-    "model-context-protocol",
-    "vat",
-    "vies",
-    "iban",
-    "vat-rates",
-    "eu-vat"
-  ],
-  "homepage": "https://veriport.io/docs",
-  "scripts": {
-    "start": "node server.mjs",
-    "test": "node --test test/*.test.mjs"
-  },
-  "mcpName": "io.veriport/veriport",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/zenomoung/veriport-sdk",
-    "directory": "mcp"
-  }
+  "bin": { "veriport-mcp": "./server.mjs" },
+  "files": ["server.mjs", "README.md"],
+  "engines": { "node": ">=18" },
+  "keywords": ["mcp", "model-context-protocol", "vat", "vies", "iban", "vat-rates", "eu-vat", "e-invoice", "xrechnung", "zugferd", "factur-x", "peppol"],
+  "homepage": "https://github.com/zenomoung/veriport-sdk#readme",
+  "repository": { "type": "git", "url": "https://github.com/zenomoung/veriport-sdk", "directory": "mcp" },
+  "bugs": { "url": "https://github.com/zenomoung/veriport-sdk/issues" },
+  "scripts": { "start": "node server.mjs", "test": "node --test test/*.test.mjs" },
+  "mcpName": "io.veriport/veriport"
 }
