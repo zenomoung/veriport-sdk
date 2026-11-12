@@ -169,6 +169,21 @@ export class Veriport {
     return this.call('validateVatNumber', params);
   }
 
+  /** GET /vat/validations: the validation records kept with `record: true`, newest first; open to every key, not counted. */
+  listValidationRecords(params: Params<'listVatValidationRecords'> = {} as Params<'listVatValidationRecords'>) {
+    return this.call('listVatValidationRecords', params);
+  }
+
+  /** GET /vat/validations/{id}: one kept record. */
+  getValidationRecord(id: string) {
+    return this.call('getVatValidationRecord', { id } as Params<'getVatValidationRecord'>);
+  }
+
+  /** DELETE /vat/validations/{id}: deletes a kept record for good. */
+  deleteValidationRecord(id: string) {
+    return this.call('deleteVatValidationRecord', { id } as Params<'deleteVatValidationRecord'>);
+  }
+
   /** POST /vat/validate/bulk (monthly plan): one result per item, a problem document in a failed slot. */
   validateVatBulk(body: Body<'validateVatNumbersBulk'>) {
     return this.call('validateVatNumbersBulk', {} as Params<'validateVatNumbersBulk'>, body);
@@ -197,6 +212,11 @@ export class Veriport {
   /** GET /fr/company/{id}: SIREN, SIRET or French VAT number to the registry record. */
   frCompany(id: string) {
     return this.call('getFrenchCompany', { id } as Params<'getFrenchCompany'>);
+  }
+
+  /** GET /peppol/participant?id=: is the company on Peppol, and does it receive Billing 3.0 invoices and credit notes. A Belgian enterprise or VAT number is looked up under 0208 and 9925. */
+  peppolParticipant(id: string) {
+    return this.call('lookupPeppolParticipant', { id } as Params<'lookupPeppolParticipant'>);
   }
 
   /** GET /us/sales-tax?zip=. */

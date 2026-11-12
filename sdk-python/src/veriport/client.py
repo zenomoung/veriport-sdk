@@ -182,15 +182,29 @@ class Veriport:
         response = self._send("POST", "/einvoice/parse", _parse_params(as_, lang), content, {"Content-Type": ctype, "Accept": "application/pdf, application/problem+json" if as_ == "pdf" else "application/json"})
         return EInvoiceFile(response) if as_ == "pdf" else response.json()
 
-    def validate_vat(self, number: str, country: Optional[str] = None, requester: Optional[str] = None) -> Dict[str, Any]:
-        """GET /vat/validate: structure and check digit, then VIES live or the dated cache. ``number`` may carry the prefix."""
-        return self.call("GET", "/vat/validate", params={"number": number, "country": country, "requester": requester})
+    def validate_vat(self, number: str, country: Optional[str] = None, requester: Optional[str] = None, record: Optional[bool] = None) -> Dict[str, Any]:
+        """GET /vat/validate: structure and check digit, then VIES live or the dated cache. ``number`` may carry the prefix. ``record=True`` keeps the answer as a validation record (paid tiers)."""
+        return self.call("GET", "/vat/validate", params={"number": number, "country": country, "requester": requester, "record": "true" if record else None})
 
-    def validate_vat_bulk(self, items: Iterable[Dict[str, str]], requester: Optional[str] = None) -> Dict[str, Any]:
+    def list_validation_records(self, **params: Any) -> Dict[str, Any]:
+        """GET /vat/validations: the kept records, newest first (number, country, from, to, limit, cursor). Open to every key, not counted."""
+        return self.call("GET", "/vat/validations", params=params)
+
+    def validation_record(self, record_id: str) -> Dict[str, Any]:
+        """GET /vat/validations/{id}: one kept record."""
+        return self.call("GET", f"/vat/validations/{record_id}")
+
+    def delete_validation_record(self, record_id: str) -> Dict[str, Any]:
+        """DELETE /vat/validations/{id}: deletes a kept record for good."""
+        return self.call("DELETE", f"/vat/validations/{record_id}")
+
+    def validate_vat_bulk(self, items: Iterable[Dict[str, str]], requester: Optional[str] = None, record: Optional[bool] = None) -> Dict[str, Any]:
         """POST /vat/validate/bulk (monthly plan): one result per item, a problem document in a failed slot."""
         body: Dict[str, Any] = {"items": list(items)}
         if requester:
             body["requester"] = requester
+        if record:
+            body["record"] = True
         return self.call("POST", "/vat/validate/bulk", json=body)
 
     def vat_rates(self, category: Optional[str] = None) -> Dict[str, Any]:
@@ -212,6 +226,11 @@ class Veriport:
     def fr_company(self, identifier: str) -> Dict[str, Any]:
         """GET /fr/company/{id}: SIREN, SIRET or French VAT number to the registry record."""
         return self.call("GET", f"/fr/company/{quote(identifier, safe='')}")
+
+    def peppol_participant(self, identifier: str) -> Dict[str, Any]:
+        """GET /peppol/participant?id=: is the company on Peppol, and does it receive Billing 3.0 invoices and credit notes.
+        A Belgian enterprise or VAT number is looked up under 0208 and 9925."""
+        return self.call("GET", "/peppol/participant", params={"id": identifier})
 
     def us_sales_tax(self, zip_code: str) -> Dict[str, Any]:
         """GET /us/sales-tax?zip=."""
@@ -275,8 +294,17 @@ class AsyncVeriport:
         response = await self._send("POST", "/einvoice/parse", _parse_params(as_, lang), content, {"Content-Type": ctype, "Accept": "application/pdf, application/problem+json" if as_ == "pdf" else "application/json"})
         return EInvoiceFile(response) if as_ == "pdf" else response.json()
 
-    async def validate_vat(self, number: str, country: Optional[str] = None, requester: Optional[str] = None) -> Dict[str, Any]:
-        return await self.call("GET", "/vat/validate", params={"number": number, "country": country, "requester": requester})
+    async def validate_vat(self, number: str, country: Optional[str] = None, requester: Optional[str] = None, record: Optional[bool] = None) -> Dict[str, Any]:
+        return await self.call("GET", "/vat/validate", params={"number": number, "country": country, "requester": requester, "record": "true" if record else None})
+
+    async def list_validation_records(self, **params: Any) -> Dict[str, Any]:
+        return await self.call("GET", "/vat/validations", params=params)
+
+    async def validation_record(self, record_id: str) -> Dict[str, Any]:
+        return await self.call("GET", f"/vat/validations/{record_id}")
+
+    async def delete_validation_record(self, record_id: str) -> Dict[str, Any]:
+        return await self.call("DELETE", f"/vat/validations/{record_id}")
 
     async def vat_rates(self, category: Optional[str] = None) -> Dict[str, Any]:
         return await self.call("GET", "/vat/rates", params={"category": category})
@@ -289,6 +317,9 @@ class AsyncVeriport:
 
     async def fr_company(self, identifier: str) -> Dict[str, Any]:
         return await self.call("GET", f"/fr/company/{quote(identifier, safe='')}")
+
+    async def peppol_participant(self, identifier: str) -> Dict[str, Any]:
+        return await self.call("GET", "/peppol/participant", params={"id": identifier})
 
     async def us_sales_tax(self, zip_code: str) -> Dict[str, Any]:
         return await self.call("GET", "/us/sales-tax", params={"zip": zip_code})

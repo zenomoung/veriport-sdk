@@ -331,6 +331,12 @@ export type VatValidation = {
   address?: string | null;
   /** The date VIES stamped the answer with. */
   requestDate?: string | null;
+  /** Present when `record=true` was sent: the kept record, or null for a structure-only answer. */
+  record?: {
+    id?: string;
+    createdAt?: string;
+    digest?: string;
+  } | null;
   /** VIES request identifier, issued only when `requester` is supplied and accepted. Keep it with the invoice. */
   consultationNumber?: string | null;
   source: {
@@ -511,6 +517,53 @@ export type FrEstablishment = {
   headcountBand?: Record<string, unknown> | null;
 };
 
+export type PeppolDocumentType = {
+  /** The document type identifier as the SMP publishes it (scheme busdox-docid-qns). */
+  id: string;
+  /** What it is, when Veriport recognises it. */
+  label: string | null;
+  /** Peppol BIS Billing 3.0 invoice or credit note. */
+  billing: "invoice" | "credit_note" | null;
+};
+
+export type PeppolLookup = {
+  query: {
+    kind?: "participant" | "be_enterprise";
+    value?: string;
+  };
+  /** At least one identifier is registered in the Peppol SML. */
+  registered: boolean;
+  /** Peppol BIS Billing 3.0 documents received under any identifier; null when an SMP did not answer and the others do not settle it. */
+  receives: {
+    invoice?: boolean;
+    creditNote?: boolean;
+  } | null;
+  participants: Array<{
+    /** iso6523-actorid-upis::ICD:value */
+    id?: string;
+    registered?: boolean;
+    smp?: string | null;
+    /** Null when the participant is registered but its SMP did not answer. */
+    documentTypes?: Array<PeppolDocumentType> | null;
+  }>;
+  /** From the Peppol Directory, when the provider published one. */
+  businessCard: {
+    name?: string;
+    countryCode?: string | null;
+    registeredOn?: string | null;
+  } | null;
+  source: {
+    sml?: string;
+    directory?: boolean;
+    checkedAt?: string;
+    cache?: {
+      hit?: boolean;
+      ageSeconds?: number;
+      stale?: boolean;
+    };
+  };
+};
+
 export type FrCompany = {
   siren: string;
   /** Full name as the registry shows it. */
@@ -625,6 +678,38 @@ export type UsSalesTax = {
   notes: Array<string>;
 };
 
+export type ValidationRecord = {
+  /** The record id (`vr_…`). */
+  id: string;
+  /** When the record was made. */
+  createdAt: string;
+  /** The prefix of the key that made it. */
+  keyPrefix?: string;
+  countryCode?: string;
+  vatNumber?: string;
+  /** The normalised number with its prefix. */
+  full: string;
+  valid: boolean;
+  name?: string | null;
+  address?: string | null;
+  requestDate?: string | null;
+  /** Issued by VIES when `requester` was supplied. */
+  consultationNumber?: string | null;
+  requester?: string | null;
+  source: {
+    kind?: "live" | "cache";
+    checkedAt?: string;
+    stale?: boolean;
+  };
+  upstream: {
+    service?: "vies";
+    status?: string;
+    transport?: "rest" | "soap" | null;
+  };
+  /** SHA-256 (hex) of the JSON array [id, createdAt, full, valid, name, address, requestDate, consultationNumber, requester, source.kind, source.checkedAt, source.stale, upstream.status, upstream.transport]. Store it to compare the record later. */
+  digest: string;
+};
+
 export type Me = {
   keyPrefix?: string;
   tier?: "free" | "credits" | "plan";
@@ -685,6 +770,8 @@ export type ValidateVatNumberParams = {
   number: string;
   /** Your own EU VAT number (with prefix). VIES then issues a consultation number, the evidence a tax audit accepts. Prepaid credits or the monthly plan. */
   requester?: string;
+  /** `true` keeps this validation as a record on your account for 10 years (or until you delete it), and the answer gains `record`. A structure-only answer is not kept (`record` is null), since VIES was not consulted. A record is our dated copy of the answer; only the consultation number is issued by VIES. Prepaid credits or the monthly plan. */
+  record?: boolean;
 };
 export type ValidateVatNumberBody = never;
 export type ValidateVatNumberResponse = VatValidation;
@@ -702,6 +789,48 @@ export type ValidateVatNumbersBulkBody = {
 export type ValidateVatNumbersBulkResponse = {
   results?: Array<VatValidation | Problem>;
   counted?: number;
+};
+
+/** List the validation records kept on your account — GET /vat/validations. Tiers: free, credits, plan. Cost: free */
+export type ListVatValidationRecordsParams = {
+  /** Only this VAT number, with or without its prefix (`country` supplies a missing prefix). */
+  number?: string;
+  /** Two-letter prefix when `number` has none. */
+  country?: string;
+  /** Records made at or after this ISO 8601 date or instant. */
+  from?: string;
+  /** Records made before this ISO 8601 date or instant. */
+  to?: string;
+  /** Records per page. */
+  limit?: number;
+  /** The `nextCursor` of the previous page. */
+  cursor?: string;
+  /** The answer format. */
+  format?: "json" | "csv";
+};
+export type ListVatValidationRecordsBody = never;
+export type ListVatValidationRecordsResponse = {
+  records: Array<ValidationRecord>;
+  nextCursor: string | null;
+};
+
+/** Get one validation record — GET /vat/validations/{id}. Tiers: free, credits, plan. Cost: free */
+export type GetVatValidationRecordParams = {
+  /** The record id (`vr_…`). */
+  id: string;
+};
+export type GetVatValidationRecordBody = never;
+export type GetVatValidationRecordResponse = ValidationRecord;
+
+/** Delete one validation record — DELETE /vat/validations/{id}. Tiers: free, credits, plan. Cost: free */
+export type DeleteVatValidationRecordParams = {
+  /** The record id (`vr_…`). */
+  id: string;
+};
+export type DeleteVatValidationRecordBody = never;
+export type DeleteVatValidationRecordResponse = {
+  id: string;
+  deleted: boolean;
 };
 
 /** EU VAT rates for all member states — GET /vat/rates. Tiers: anonymous, free, credits, plan. Cost: 1 call */
@@ -766,6 +895,14 @@ export type GetFrenchCompanyParams = {
 export type GetFrenchCompanyBody = never;
 export type GetFrenchCompanyResponse = FrCompany;
 
+/** Can this company receive Peppol invoices? — GET /peppol/participant. Tiers: anonymous, free, credits, plan. Cost: 1 call (cached or live); 0 on 400 or 503 */
+export type LookupPeppolParticipantParams = {
+  /** A Peppol participant identifier (ICD:value) or a Belgian enterprise or VAT number. */
+  id: string;
+};
+export type LookupPeppolParticipantBody = never;
+export type LookupPeppolParticipantResponse = PeppolLookup;
+
 /** Up to 100 French companies in one request — POST /fr/company/bulk. Tiers: plan. Cost: 1 call per answered item */
 export type GetFrenchCompaniesBulkParams = Record<string, never>;
 export type GetFrenchCompaniesBulkBody = {
@@ -821,12 +958,16 @@ export type GetStatusResponse = Status;
 export interface Operations {
   validateVatNumber: { params: ValidateVatNumberParams; body: ValidateVatNumberBody; response: ValidateVatNumberResponse };
   validateVatNumbersBulk: { params: ValidateVatNumbersBulkParams; body: ValidateVatNumbersBulkBody; response: ValidateVatNumbersBulkResponse };
+  listVatValidationRecords: { params: ListVatValidationRecordsParams; body: ListVatValidationRecordsBody; response: ListVatValidationRecordsResponse };
+  getVatValidationRecord: { params: GetVatValidationRecordParams; body: GetVatValidationRecordBody; response: GetVatValidationRecordResponse };
+  deleteVatValidationRecord: { params: DeleteVatValidationRecordParams; body: DeleteVatValidationRecordBody; response: DeleteVatValidationRecordResponse };
   listVatRates: { params: ListVatRatesParams; body: ListVatRatesBody; response: ListVatRatesResponse };
   getVatRates: { params: GetVatRatesParams; body: GetVatRatesBody; response: GetVatRatesResponse };
   validateIban: { params: ValidateIbanParams; body: ValidateIbanBody; response: ValidateIbanResponse };
   validateIbansBulk: { params: ValidateIbansBulkParams; body: ValidateIbansBulkBody; response: ValidateIbansBulkResponse };
   buildOssReturn: { params: BuildOssReturnParams; body: BuildOssReturnBody; response: BuildOssReturnResponse };
   getFrenchCompany: { params: GetFrenchCompanyParams; body: GetFrenchCompanyBody; response: GetFrenchCompanyResponse };
+  lookupPeppolParticipant: { params: LookupPeppolParticipantParams; body: LookupPeppolParticipantBody; response: LookupPeppolParticipantResponse };
   getFrenchCompaniesBulk: { params: GetFrenchCompaniesBulkParams; body: GetFrenchCompaniesBulkBody; response: GetFrenchCompaniesBulkResponse };
   getUsSalesTax: { params: GetUsSalesTaxParams; body: GetUsSalesTaxBody; response: GetUsSalesTaxResponse };
   createEInvoice: { params: CreateEInvoiceParams; body: CreateEInvoiceBody; response: CreateEInvoiceResponse };
@@ -836,18 +977,22 @@ export interface Operations {
   getStatus: { params: GetStatusParams; body: GetStatusBody; response: GetStatusResponse };
 }
 
-export interface OperationSpec { method: "GET" | "POST"; path: string; pathParams: string[]; query: string[]; hasBody: boolean; bodyTypes: string[]; anonymous: boolean; tiers: string[]; cost: string }
+export interface OperationSpec { method: "GET" | "POST" | "DELETE"; path: string; pathParams: string[]; query: string[]; hasBody: boolean; bodyTypes: string[]; anonymous: boolean; tiers: string[]; cost: string }
 
 /** The routing table of the client: how each operation is sent. */
 export const OPERATIONS: Record<keyof Operations, OperationSpec> = {
-  validateVatNumber: { method: "GET", path: "/vat/validate", pathParams: [], query: ["country","number","requester"], hasBody: false, bodyTypes: [], anonymous: true, tiers: ["anonymous","free","credits","plan"], cost: "1 call when VIES or the cache answered; 0 when the structure already fails or when a 5xx is returned" },
+  validateVatNumber: { method: "GET", path: "/vat/validate", pathParams: [], query: ["country","number","requester","record"], hasBody: false, bodyTypes: [], anonymous: true, tiers: ["anonymous","free","credits","plan"], cost: "1 call when VIES or the cache answered; 0 when the structure already fails or when a 5xx is returned" },
   validateVatNumbersBulk: { method: "POST", path: "/vat/validate/bulk", pathParams: [], query: [], hasBody: true, bodyTypes: ["application/json"], anonymous: false, tiers: ["plan"], cost: "1 call per item" },
+  listVatValidationRecords: { method: "GET", path: "/vat/validations", pathParams: [], query: ["number","country","from","to","limit","cursor","format"], hasBody: false, bodyTypes: [], anonymous: false, tiers: ["free","credits","plan"], cost: "free" },
+  getVatValidationRecord: { method: "GET", path: "/vat/validations/{id}", pathParams: ["id"], query: [], hasBody: false, bodyTypes: [], anonymous: false, tiers: ["free","credits","plan"], cost: "free" },
+  deleteVatValidationRecord: { method: "DELETE", path: "/vat/validations/{id}", pathParams: ["id"], query: [], hasBody: false, bodyTypes: [], anonymous: false, tiers: ["free","credits","plan"], cost: "free" },
   listVatRates: { method: "GET", path: "/vat/rates", pathParams: [], query: ["category"], hasBody: false, bodyTypes: [], anonymous: true, tiers: ["anonymous","free","credits","plan"], cost: "1 call" },
   getVatRates: { method: "GET", path: "/vat/rates/{country}", pathParams: ["country"], query: [], hasBody: false, bodyTypes: [], anonymous: true, tiers: ["anonymous","free","credits","plan"], cost: "1 call" },
   validateIban: { method: "GET", path: "/iban/validate", pathParams: [], query: ["iban"], hasBody: false, bodyTypes: [], anonymous: true, tiers: ["anonymous","free","credits","plan"], cost: "1 call" },
   validateIbansBulk: { method: "POST", path: "/iban/validate/bulk", pathParams: [], query: [], hasBody: true, bodyTypes: ["application/json"], anonymous: false, tiers: ["plan"], cost: "1 call per item" },
   buildOssReturn: { method: "POST", path: "/vat/oss/return", pathParams: [], query: ["output"], hasBody: true, bodyTypes: ["application/json"], anonymous: false, tiers: ["free","credits","plan"], cost: "25 calls per accepted return (0 when the rows are refused with 422; 0 on an Idempotency-Key replay)" },
   getFrenchCompany: { method: "GET", path: "/fr/company/{id}", pathParams: ["id"], query: [], hasBody: false, bodyTypes: [], anonymous: true, tiers: ["anonymous","free","credits","plan"], cost: "1 call (cached or live); 0 on 404 or 503" },
+  lookupPeppolParticipant: { method: "GET", path: "/peppol/participant", pathParams: [], query: ["id"], hasBody: false, bodyTypes: [], anonymous: true, tiers: ["anonymous","free","credits","plan"], cost: "1 call (cached or live); 0 on 400 or 503" },
   getFrenchCompaniesBulk: { method: "POST", path: "/fr/company/bulk", pathParams: [], query: [], hasBody: true, bodyTypes: ["application/json"], anonymous: false, tiers: ["plan"], cost: "1 call per answered item" },
   getUsSalesTax: { method: "GET", path: "/us/sales-tax", pathParams: [], query: ["zip"], hasBody: false, bodyTypes: [], anonymous: true, tiers: ["anonymous","free","credits","plan"], cost: "1 call" },
   createEInvoice: { method: "POST", path: "/einvoice/create", pathParams: [], query: ["envelope"], hasBody: true, bodyTypes: ["application/json"], anonymous: false, tiers: ["free","credits","plan"], cost: "20 calls per produced file; 0 when refused (400, 413, 422) and on an Idempotency-Key replay" },

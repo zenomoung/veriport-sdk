@@ -32,6 +32,12 @@ async function fakeApi() {
       if (url.searchParams.get('number') === 'IT111') return json(503, { code: 'vies_unavailable', detail: 'Italy is down', retryAfter: 30 });
       return json(200, { valid: true, full: url.searchParams.get('number'), source: { kind: 'live', stale: false } });
     }
+    if (url.pathname === '/api/v1/peppol/participant') {
+      const yes = url.searchParams.get('id') === 'BE 0202.239.951';
+      const billing = [{ id: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##x', label: 'Peppol BIS Billing 3.0 invoice', billing: 'invoice' }];
+      return json(200, { query: { kind: 'be_enterprise', value: '0202239951' }, registered: yes, receives: yes ? { invoice: true, creditNote: false } : { invoice: false, creditNote: false }, participants: [{ id: 'iso6523-actorid-upis::0208:0202239951', registered: yes, smp: yes ? 'https://smp.example/' : null, documentTypes: yes ? billing : null }], businessCard: yes ? { name: 'Example SA', countryCode: 'BE', registeredOn: '2025-06-02' } : null });
+    }
+    if (url.pathname === '/api/v1/fr/company/356000000') return json(200, { siren: '356000000', name: 'LA POSTE', legalName: 'LA POSTE', legalForm: { code: '5510', label: 'SA à conseil d\'administration' }, naf: { code: '53.10Z' }, status: 'active', ceasedOn: null, address: { full: '9 RUE DU COLONEL PIERRE AVIA 75015 PARIS', postalCode: '75015', city: 'PARIS' }, establishment: null, vatNumber: { computed: 'FR39356000000' }, source: { primary: 'recherche_entreprises', fetchedOn: '2026-11-12T10:00:00.000Z', cache: { hit: false, stale: false } } });
     if (url.pathname === '/api/v1/iban/validate') return json(200, { valid: true, iban: url.searchParams.get('iban'), sepa: true });
     if (url.pathname === '/api/v1/vat/rates/FR') return json(200, { country: 'FR', standard: 20, verifiedOn: '2026-10-24' });
     if (url.pathname === '/api/v1/vat/rates') return json(200, { category: url.searchParams.get('category'), rows: [] });
@@ -81,7 +87,7 @@ test('initialize, tools/list, tools/call (validate_einvoice included) over stdio
     assert.ok(init.result.capabilities.tools);
     c.notify('notifications/initialized');
     const list = await c.request('tools/list', {});
-    assert.deepEqual(list.result.tools.map((t) => t.name), ['validate_vat', 'validate_iban', 'vat_rate', 'validate_einvoice']);
+    assert.deepEqual(list.result.tools.map((t) => t.name), ['validate_vat', 'validate_iban', 'vat_rate', 'validate_einvoice', 'french_company', 'peppol_participant']);
     for (const t of list.result.tools) assert.equal(t.inputSchema.type, 'object');
 
     const vat = await c.request('tools/call', { name: 'validate_vat', arguments: { number: 'DE136695976' } });
@@ -97,6 +103,15 @@ test('initialize, tools/list, tools/call (validate_einvoice included) over stdio
     assert.equal(fr.result.structuredContent.standard, 20);
     const cat = await c.request('tools/call', { name: 'vat_rate', arguments: { category: 'ebooks' } });
     assert.equal(cat.result.structuredContent.category, 'ebooks');
+    const company = await c.request('tools/call', { name: 'french_company', arguments: { id: '356 000 000' } });
+    assert.match(company.result.content[0].text, /^LA POSTE \(SIREN 356000000\): active, SA à conseil d'administration, NAF 53\.10Z\.\nHead office: 9 RUE DU COLONEL PIERRE AVIA 75015 PARIS\nVAT number \(computed\): FR39356000000/);
+    assert.ok(api.seen.some((x) => x.url === '/api/v1/fr/company/356000000'));
+    const badId = await c.request('tools/call', { name: 'french_company', arguments: { id: '12345' } });
+    assert.equal(badId.result.isError, true);
+    const peppol = await c.request('tools/call', { name: 'peppol_participant', arguments: { id: 'BE 0202.239.951' } });
+    assert.match(peppol.result.content[0].text, /^Example SA \(BE\): registered on Peppol; invoices yes, credit notes no/);
+    const notOn = await c.request('tools/call', { name: 'peppol_participant', arguments: { id: '0477472701' } });
+    assert.match(notOn.result.content[0].text, /NOT registered on Peppol under iso6523-actorid-upis::0208:0202239951/);
 
     const limited = await c.request('tools/call', { name: 'validate_vat', arguments: { number: 'DE000' } });
     assert.equal(limited.result.isError, true);

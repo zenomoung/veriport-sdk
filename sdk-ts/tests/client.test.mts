@@ -52,7 +52,7 @@ describe('client', () => {
     const ids = Object.keys(OPERATIONS);
     assert.ok(ids.includes('validateVatNumber') && ids.includes('validateIban') && ids.includes('getVatRates') && ids.includes('getFrenchCompany'));
     for (const spec of Object.values(OPERATIONS)) {
-      assert.ok(spec.method === 'GET' || spec.method === 'POST');
+      assert.ok(spec.method === 'GET' || spec.method === 'POST' || spec.method === 'DELETE');
       assert.ok(spec.path.startsWith('/'));
       for (const pp of spec.pathParams) assert.ok(spec.path.includes(`{${pp}}`));
     }

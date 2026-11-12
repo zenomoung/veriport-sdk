@@ -1,0 +1,1359 @@
+{
+  "info": {
+    "_postman_id": "1c7cb03a-df64-42bf-8415-5c6a78c90a54",
+    "name": "Veriport API",
+    "description": "One REST API for the checks every invoicing, billing and payout system needs, and for the e-invoices it must now issue: EU VAT number validation on top of the Commission’s VIES service with a dated cache when a member state is down, French company data from the public registries, IBAN validation from the SWIFT registry with a SEPA flag, compliant e-invoices from JSON (XRechnung, ZUGFeRD / Factur-X, Peppol BIS Billing 3.0) with the official check of any e-invoice, EU VAT rates by country and category from a sourced table, OSS and IOSS return lines, and US sales-tax rates from public state tables. Deterministic answers, documented errors, a free tier without a card.\n\nAuthenticate with `Authorization: Bearer <key>`. Without a key, 20 calls a day per address are allowed on the validation and rates endpoints (no consultation number, no bulk). Every error is an RFC 9457 problem document whose `type` links to the errors page. Dates are ISO 8601 in UTC.\n\nGenerated from https://veriport.io/openapi.json (API version 2026-10-28.1) by the Veriport repository; set the `apiKey` variable to your key (https://veriport.io/signup, free, no card) or leave it empty for the anonymous allowance on the endpoints that allow it. Documentation: https://veriport.io/docs. Support: hello@veriport.io.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2026-10-28.1"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://veriport.io/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string",
+      "description": "vp_live_… from https://veriport.io/signup; empty for the anonymous allowance"
+    }
+  ],
+  "item": [
+    {
+      "name": "VAT numbers",
+      "description": "EU VAT number validation on top of the Commission’s VIES service.",
+      "item": [
+        {
+          "name": "Validate an EU VAT number",
+          "id": "d9c69a31-573b-4f40-8a86-33f130eefd84",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vat/validate?country=DE&number=136695976&requester=FR40303265045",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vat",
+                "validate"
+              ],
+              "query": [
+                {
+                  "key": "country",
+                  "value": "DE",
+                  "description": "ISO 3166-1 alpha-2 of the member state; Greece is `EL` (GR accepted), Northern Ireland `XI`. May be omitted when `number` carries the prefix.",
+                  "disabled": false
+                },
+                {
+                  "key": "number",
+                  "value": "136695976",
+                  "description": "(required) The VAT number, with or without the country prefix, spaces or punctuation.",
+                  "disabled": false
+                },
+                {
+                  "key": "requester",
+                  "value": "FR40303265045",
+                  "description": "Your own EU VAT number (with prefix). VIES then issues a consultation number, the evidence a tax audit accepts. Prepaid credits or the monthly plan.",
+                  "disabled": false
+                },
+                {
+                  "key": "record",
+                  "value": "",
+                  "description": "`true` keeps this validation as a record on your account for 10 years (or until you delete it), and the answer gains `record`. A structure-only answer is not kept (`record` is null), since VIES was not consulted. A record is our dated copy of the answer; only the consultation number is issued by VIES. Prepaid credits or the monthly plan.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Normalises the country code and the number (spaces, punctuation, a repeated prefix, GR → EL), checks the national structure and check digit, then asks VIES (REST first, SOAP fallback). Returns the registered name and address where the member state publishes them, and a consultation number when `requester` is supplied (prepaid credits or the monthly plan). When VIES or the member state is down, the last answer we hold for that number is returned with `source.kind = \"cache\"` and `source.stale = true`; it is never presented as live. A structurally impossible number answers `valid: false` without calling VIES and is not counted.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call when VIES or the cache answered; 0 when the structure already fails or when a 5xx is returned. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The validation result, live or from the dated cache.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/vat/validate?country=DE&number=136695976&requester=FR40303265045",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vat",
+                    "validate"
+                  ],
+                  "query": [
+                    {
+                      "key": "country",
+                      "value": "DE",
+                      "description": "ISO 3166-1 alpha-2 of the member state; Greece is `EL` (GR accepted), Northern Ireland `XI`. May be omitted when `number` carries the prefix.",
+                      "disabled": false
+                    },
+                    {
+                      "key": "number",
+                      "value": "136695976",
+                      "description": "(required) The VAT number, with or without the country prefix, spaces or punctuation.",
+                      "disabled": false
+                    },
+                    {
+                      "key": "requester",
+                      "value": "FR40303265045",
+                      "description": "Your own EU VAT number (with prefix). VIES then issues a consultation number, the evidence a tax audit accepts. Prepaid credits or the monthly plan.",
+                      "disabled": false
+                    },
+                    {
+                      "key": "record",
+                      "value": "",
+                      "description": "`true` keeps this validation as a record on your account for 10 years (or until you delete it), and the answer gains `record`. A structure-only answer is not kept (`record` is null), since VIES was not consulted. A record is our dated copy of the answer; only the consultation number is issued by VIES. Prepaid credits or the monthly plan.",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Normalises the country code and the number (spaces, punctuation, a repeated prefix, GR → EL), checks the national structure and check digit, then asks VIES (REST first, SOAP fallback). Returns the registered name and address where the member state publishes them, and a consultation number when `requester` is supplied (prepaid credits or the monthly plan). When VIES or the member state is down, the last answer we hold for that number is returned with `source.kind = \"cache\"` and `source.stale = true`; it is never presented as live. A structurally impossible number answers `valid: false` without calling VIES and is not counted.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call when VIES or the cache answered; 0 when the structure already fails or when a 5xx is returned. Works without a key on the anonymous allowance (leave apiKey empty).",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"valid\": true,\n  \"countryCode\": \"DE\",\n  \"vatNumber\": \"136695976\",\n  \"full\": \"DE136695976\",\n  \"structure\": {\n    \"valid\": true,\n    \"checksum\": \"passed\",\n    \"expected\": \"9 digits\"\n  },\n  \"name\": null,\n  \"address\": null,\n  \"requestDate\": \"2026-10-24\",\n  \"consultationNumber\": null,\n  \"source\": {\n    \"kind\": \"live\",\n    \"checkedAt\": \"2026-10-24T09:14:03Z\",\n    \"cacheAgeSeconds\": 0,\n    \"stale\": false\n  },\n  \"upstream\": {\n    \"service\": \"vies\",\n    \"transport\": \"rest\",\n    \"status\": \"ok\",\n    \"memberStateAvailable\": true\n  },\n  \"tableVersion\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Validate up to 100 EU VAT numbers in one request",
+          "id": "a8e8b5a1-7c09-4901-8333-3a29f7b382b9",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vat/validate/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vat",
+                "validate",
+                "bulk"
+              ]
+            },
+            "description": "Monthly plan only. Each item is processed as `GET /vat/validate` would, with a bounded concurrency towards VIES; items are answered in order. Each item counts one call. Up to 100 items.\n\nTiers: plan. Cost: 1 call per item. Needs an API key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"country\": \"DE\",\n      \"number\": \"136695976\"\n    },\n    {\n      \"number\": \"FR40303265045\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List the validation records kept on your account",
+          "id": "b2c00f3b-faec-4e87-8af6-a3a217f0c45e",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vat/validations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vat",
+                "validations"
+              ],
+              "query": [
+                {
+                  "key": "number",
+                  "value": "",
+                  "description": "Only this VAT number, with or without its prefix (`country` supplies a missing prefix).",
+                  "disabled": true
+                },
+                {
+                  "key": "country",
+                  "value": "",
+                  "description": "Two-letter prefix when `number` has none.",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Records made at or after this ISO 8601 date or instant.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Records made before this ISO 8601 date or instant.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "description": "Records per page.",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "description": "The `nextCursor` of the previous page.",
+                  "disabled": true
+                },
+                {
+                  "key": "format",
+                  "value": "",
+                  "description": "The answer format.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "The records made with `record=true`, newest first, on every key of the account (a rotated key keeps them). Open to every key, a lapsed plan included, and not counted. `format=csv` returns the same page as CSV with the next cursor in `X-Next-Cursor`.\n\nTiers: free, credits, plan. Cost: free. Needs an API key."
+          },
+          "response": []
+        },
+        {
+          "name": "Get one validation record",
+          "id": "c16771e8-41d8-4e70-8795-270226da4424",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vat/validations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vat",
+                "validations",
+                ":id"
+              ]
+            },
+            "description": "One record of your account, as it was kept. Open to every key and not counted.\n\nTiers: free, credits, plan. Cost: free. Needs an API key."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete one validation record",
+          "id": "c676251f-226e-4700-8e40-973ae80628d7",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vat/validations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vat",
+                "validations",
+                ":id"
+              ]
+            },
+            "description": "Deletes the record for good. Records cannot be edited, only deleted. Open to every key and not counted.\n\nTiers: free, credits, plan. Cost: free. Needs an API key."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "VAT rates",
+      "description": "EU VAT rates by member state with category hints, from a dated and sourced table.",
+      "item": [
+        {
+          "name": "EU VAT rates for all member states",
+          "id": "30c63af7-bd03-4f11-8597-d8f5df76a8aa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vat/rates?category=ebooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vat",
+                "rates"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "ebooks",
+                  "description": "One of digital_services, ebooks, printed_books, foodstuffs, hotel_accommodation, restaurant, newspapers.",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "The 27 rows of the rates table: standard, reduced, super-reduced and parking rates with category hints, each with its `verifiedOn` date and sources. Table verified on 2026-10-24; reviewed monthly. Optional `category` filter returns, for each country, the hint for that category.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The table.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/vat/rates?category=ebooks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vat",
+                    "rates"
+                  ],
+                  "query": [
+                    {
+                      "key": "category",
+                      "value": "ebooks",
+                      "description": "One of digital_services, ebooks, printed_books, foodstuffs, hotel_accommodation, restaurant, newspapers.",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "The 27 rows of the rates table: standard, reduced, super-reduced and parking rates with category hints, each with its `verifiedOn` date and sources. Table verified on 2026-10-24; reviewed monthly. Optional `category` filter returns, for each country, the hint for that category.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call. Works without a key on the anonymous allowance (leave apiKey empty).",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"verifiedOn\": \"2026-10-24\",\n  \"nextReview\": \"2026-11-24\",\n  \"rates\": [\n    {\n      \"country\": \"FR\",\n      \"name\": \"France\",\n      \"currency\": \"EUR\",\n      \"standard\": 20,\n      \"reduced\": [\n        5.5,\n        10\n      ],\n      \"superReduced\": 2.1,\n      \"parking\": null,\n      \"hints\": [\n        {\n          \"category\": \"digital_services\",\n          \"rate\": 20,\n          \"kind\": \"standard\"\n        },\n        {\n          \"category\": \"ebooks\",\n          \"rate\": 5.5,\n          \"kind\": \"reduced\"\n        },\n        {\n          \"category\": \"newspapers\",\n          \"rate\": 2.1,\n          \"kind\": \"super_reduced\"\n        }\n      ],\n      \"verifiedOn\": \"2026-10-24\",\n      \"sources\": [\n        {\n          \"title\": \"VAT rates applied in the Member States of the European Union\",\n          \"url\": \"https://taxation-customs.ec.europa.eu/taxation/vat/vat-rates_en\",\n          \"consulted\": \"2026-10-24\"\n        }\n      ],\n      \"note\": \"Corsica and the overseas departments apply other rates (not in this table).\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "EU VAT rates for one member state",
+          "id": "96929a3d-b3e8-4110-82e6-dfc23f2ab828",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vat/rates/FR",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vat",
+                "rates",
+                "FR"
+              ]
+            },
+            "description": "One row of the rates table with its category hints, `verifiedOn` date and sources. Greece is `EL` (GR accepted).\n\nTiers: anonymous, free, credits, plan. Cost: 1 call. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The row.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/vat/rates/FR",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vat",
+                    "rates",
+                    "FR"
+                  ]
+                },
+                "description": "One row of the rates table with its category hints, `verifiedOn` date and sources. Greece is `EL` (GR accepted).\n\nTiers: anonymous, free, credits, plan. Cost: 1 call. Works without a key on the anonymous allowance (leave apiKey empty).",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"country\": \"FR\",\n  \"name\": \"France\",\n  \"currency\": \"EUR\",\n  \"standard\": 20,\n  \"reduced\": [\n    5.5,\n    10\n  ],\n  \"superReduced\": 2.1,\n  \"parking\": null,\n  \"hints\": [\n    {\n      \"category\": \"digital_services\",\n      \"rate\": 20,\n      \"kind\": \"standard\"\n    },\n    {\n      \"category\": \"ebooks\",\n      \"rate\": 5.5,\n      \"kind\": \"reduced\"\n    },\n    {\n      \"category\": \"newspapers\",\n      \"rate\": 2.1,\n      \"kind\": \"super_reduced\"\n    }\n  ],\n  \"verifiedOn\": \"2026-10-24\",\n  \"sources\": [\n    {\n      \"title\": \"VAT rates applied in the Member States of the European Union\",\n      \"url\": \"https://taxation-customs.ec.europa.eu/taxation/vat/vat-rates_en\",\n      \"consulted\": \"2026-10-24\"\n    }\n  ],\n  \"note\": \"Corsica and the overseas departments apply other rates (not in this table).\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "IBAN",
+      "description": "IBAN structure, length, mod 97-10 and BBAN pattern per country, with the SEPA flag.",
+      "item": [
+        {
+          "name": "Validate an IBAN",
+          "id": "10df1e7b-85f1-48c4-8dbb-c3225ca5c516",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iban/validate?iban=DE89%203704%200044%200532%200130%2000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iban",
+                "validate"
+              ],
+              "query": [
+                {
+                  "key": "iban",
+                  "value": "DE89 3704 0044 0532 0130 00",
+                  "description": "(required) The IBAN, electronic or paper form.",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Normalises the input (case, spaces, dashes), then checks: allowed characters, known country, country length, the ISO 7064 mod 97-10 check digits, and the country’s BBAN pattern from the SWIFT IBAN Registry. Returns the bank and branch identifiers where the registry defines them and whether the country is in the SEPA geographical scope (EPC list). BIC lookup is not part of v1 (the BIC directory is licensed data); see the roadmap.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The result, valid or not (an invalid IBAN is a 200 with `valid: false` and `failures[]`).",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/iban/validate?iban=DE89%203704%200044%200532%200130%2000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "iban",
+                    "validate"
+                  ],
+                  "query": [
+                    {
+                      "key": "iban",
+                      "value": "DE89 3704 0044 0532 0130 00",
+                      "description": "(required) The IBAN, electronic or paper form.",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Normalises the input (case, spaces, dashes), then checks: allowed characters, known country, country length, the ISO 7064 mod 97-10 check digits, and the country’s BBAN pattern from the SWIFT IBAN Registry. Returns the bank and branch identifiers where the registry defines them and whether the country is in the SEPA geographical scope (EPC list). BIC lookup is not part of v1 (the BIC directory is licensed data); see the roadmap.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call. Works without a key on the anonymous allowance (leave apiKey empty).",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"valid\": true,\n  \"iban\": \"DE89370400440532013000\",\n  \"formatted\": \"DE89 3704 0044 0532 0130 00\",\n  \"countryCode\": \"DE\",\n  \"countryName\": \"Germany\",\n  \"checkDigits\": \"89\",\n  \"bban\": \"370400440532013000\",\n  \"bankIdentifier\": \"37040044\",\n  \"branchIdentifier\": null,\n  \"expectedLength\": 22,\n  \"sepa\": true,\n  \"sepaSince\": null,\n  \"checks\": {\n    \"characters\": true,\n    \"country\": true,\n    \"length\": true,\n    \"mod97\": true,\n    \"bbanPattern\": true\n  },\n  \"failures\": [],\n  \"registry\": {\n    \"source\": \"SWIFT IBAN Registry (ISO 13616)\",\n    \"verifiedOn\": \"2026-10-24\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Validate up to 100 IBANs in one request",
+          "id": "a9479f3f-04aa-4687-8efd-28121ba95b63",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iban/validate/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iban",
+                "validate",
+                "bulk"
+              ]
+            },
+            "description": "Monthly plan only. Each IBAN is answered in order; each counts one call. Up to 100 items.\n\nTiers: plan. Cost: 1 call per item. Needs an API key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ibans\": [\n    \"DE89370400440532013000\",\n    \"FR7630006000011234567890189\",\n    \"GB82WEST12345698765432\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "OSS return",
+      "description": "OSS return validator (lines only; dispatch-country breakdown not implemented): OSS / IOSS return lines from a sales export, per member state of consumption, supply type and rate, validated against the dated rates table, with a generic CSV. Not a filable return for sellers dispatching goods from more than one member state.",
+      "item": [
+        {
+          "name": "OSS return validator (lines only; dispatch-country breakdown not implemented)",
+          "id": "9bd023de-a65e-4c7a-8a39-48c50ba6debe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "",
+                "description": "Unique per request (a UUID will do; `^[A-Za-z0-9_.:-]{1,128}$`). A retry with the same key, query and body replays the stored answer for 24 hours (`Idempotent-Replayed: true`) instead of building and charging a second return; another body under the same key is 409."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vat/oss/return?output=json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vat",
+                "oss",
+                "return"
+              ],
+              "query": [
+                {
+                  "key": "output",
+                  "value": "json",
+                  "description": "`json` (default): summary, files and portal notes. `csv`: the generic CSV file alone, with `Content-Disposition`.",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "OSS return validator (lines only; dispatch-country breakdown not implemented): the output is the set of return lines per member state of consumption, supply type and rate, checked against the rates table, not a filable return. Implementing Regulation (EU) 2020/194 Annex III also requires goods to be split by member state of dispatch or fixed establishment; the row model carries no dispatch country, so a seller shipping from stock in several member states cannot file from this output (assessment 2026-10-28). Send the quarter's (OSS) or month's (IOSS) B2C sales as JSON rows or as a CSV export (`Content-Type: text/csv`, header row in English, French or German; or JSON `{period, scheme, csv}`). Each row names the member state of consumption, the rate (or a rates-table category), the net amount, optionally the VAT amount, the supply date and the supply type. The service aggregates per member state, supply type and rate; validates every row against the dated rates table (the rate must be one the member state applies; a rate changed inside the table's window is accepted with a warning when the supply predates the change), reconciles VAT with net × rate, checks the dates against the period, and nets credit notes; rows marked `correctionOfPeriod` become the corrections section. Returns the per-country summary and the upload file. On 2026-10-24 no national portal format could be fetched (the BZSt publishes its CSV record layout only inside the logged-in form; the DGFiP publishes none), so the file is a clearly labelled generic CSV and `portals[]` says so per member state. Up to 50000 rows or 4.5 MB. Add `?output=csv` to receive the file itself instead of JSON. Send an `Idempotency-Key` header (1–128 characters, unique per request) and a retry after a dropped response replays the stored answer for 24 hours without a second charge (`Idempotent-Replayed: true`); the same key with a different body or query is refused with 409 `idempotency_conflict`.\n\nTiers: free, credits, plan. Cost: 25 calls per accepted return (0 when the rows are refused with 422; 0 on an Idempotency-Key replay). Needs an API key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"period\": \"2026-Q3\",\n  \"scheme\": \"union\",\n  \"rows\": [\n    {\n      \"country\": \"DE\",\n      \"rate\": 19,\n      \"net\": 1250,\n      \"vat\": 237.5,\n      \"date\": \"2026-07-14\",\n      \"supplyType\": \"goods\"\n    },\n    {\n      \"country\": \"DE\",\n      \"rate\": 7,\n      \"net\": 310,\n      \"vat\": 21.7,\n      \"date\": \"2026-08-02\",\n      \"supplyType\": \"goods\"\n    },\n    {\n      \"country\": \"FR\",\n      \"category\": \"digital_services\",\n      \"net\": 980,\n      \"date\": \"2026-09-21\"\n    },\n    {\n      \"country\": \"IT\",\n      \"rate\": 22,\n      \"net\": -45,\n      \"vat\": -9.9,\n      \"date\": \"2026-05-30\",\n      \"correctionOfPeriod\": \"2026-Q2\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The return: lines, corrections, totals, the file, and what each portal accepts.",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "",
+                    "description": "Unique per request (a UUID will do; `^[A-Za-z0-9_.:-]{1,128}$`). A retry with the same key, query and body replays the stored answer for 24 hours (`Idempotent-Replayed: true`) instead of building and charging a second return; another body under the same key is 409."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/vat/oss/return?output=json",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vat",
+                    "oss",
+                    "return"
+                  ],
+                  "query": [
+                    {
+                      "key": "output",
+                      "value": "json",
+                      "description": "`json` (default): summary, files and portal notes. `csv`: the generic CSV file alone, with `Content-Disposition`.",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "OSS return validator (lines only; dispatch-country breakdown not implemented): the output is the set of return lines per member state of consumption, supply type and rate, checked against the rates table, not a filable return. Implementing Regulation (EU) 2020/194 Annex III also requires goods to be split by member state of dispatch or fixed establishment; the row model carries no dispatch country, so a seller shipping from stock in several member states cannot file from this output (assessment 2026-10-28). Send the quarter's (OSS) or month's (IOSS) B2C sales as JSON rows or as a CSV export (`Content-Type: text/csv`, header row in English, French or German; or JSON `{period, scheme, csv}`). Each row names the member state of consumption, the rate (or a rates-table category), the net amount, optionally the VAT amount, the supply date and the supply type. The service aggregates per member state, supply type and rate; validates every row against the dated rates table (the rate must be one the member state applies; a rate changed inside the table's window is accepted with a warning when the supply predates the change), reconciles VAT with net × rate, checks the dates against the period, and nets credit notes; rows marked `correctionOfPeriod` become the corrections section. Returns the per-country summary and the upload file. On 2026-10-24 no national portal format could be fetched (the BZSt publishes its CSV record layout only inside the logged-in form; the DGFiP publishes none), so the file is a clearly labelled generic CSV and `portals[]` says so per member state. Up to 50000 rows or 4.5 MB. Add `?output=csv` to receive the file itself instead of JSON. Send an `Idempotency-Key` header (1–128 characters, unique per request) and a retry after a dropped response replays the stored answer for 24 hours without a second charge (`Idempotent-Replayed: true`); the same key with a different body or query is refused with 409 `idempotency_conflict`.\n\nTiers: free, credits, plan. Cost: 25 calls per accepted return (0 when the rows are refused with 422; 0 on an Idempotency-Key replay). Needs an API key.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"period\": \"2026-Q3\",\n  \"scheme\": \"union\",\n  \"rows\": [\n    {\n      \"country\": \"DE\",\n      \"rate\": 19,\n      \"net\": 1250,\n      \"vat\": 237.5,\n      \"date\": \"2026-07-14\",\n      \"supplyType\": \"goods\"\n    },\n    {\n      \"country\": \"DE\",\n      \"rate\": 7,\n      \"net\": 310,\n      \"vat\": 21.7,\n      \"date\": \"2026-08-02\",\n      \"supplyType\": \"goods\"\n    },\n    {\n      \"country\": \"FR\",\n      \"category\": \"digital_services\",\n      \"net\": 980,\n      \"date\": \"2026-09-21\"\n    },\n    {\n      \"country\": \"IT\",\n      \"rate\": 22,\n      \"net\": -45,\n      \"vat\": -9.9,\n      \"date\": \"2026-05-30\",\n      \"correctionOfPeriod\": \"2026-Q2\"\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"scheme\": \"union\",\n  \"period\": {\n    \"label\": \"2026-Q3\",\n    \"kind\": \"quarter\",\n    \"start\": \"2026-07-01\",\n    \"end\": \"2026-09-30\",\n    \"dueDate\": \"2026-10-31\"\n  },\n  \"currency\": \"EUR\",\n  \"lines\": [\n    {\n      \"country\": \"DE\",\n      \"countryName\": \"Germany\",\n      \"supplyType\": \"goods\",\n      \"rateKind\": \"standard\",\n      \"rate\": 19,\n      \"rows\": 1,\n      \"net\": 1250,\n      \"vat\": 237.5,\n      \"vatComputed\": 237.5\n    },\n    {\n      \"country\": \"DE\",\n      \"countryName\": \"Germany\",\n      \"supplyType\": \"goods\",\n      \"rateKind\": \"reduced\",\n      \"rate\": 7,\n      \"rows\": 1,\n      \"net\": 310,\n      \"vat\": 21.7,\n      \"vatComputed\": 21.7\n    },\n    {\n      \"country\": \"FR\",\n      \"countryName\": \"France\",\n      \"supplyType\": \"services\",\n      \"rateKind\": \"standard\",\n      \"rate\": 20,\n      \"rows\": 1,\n      \"net\": 980,\n      \"vat\": 196,\n      \"vatComputed\": 196\n    }\n  ],\n  \"corrections\": [\n    {\n      \"period\": \"2026-Q2\",\n      \"country\": \"IT\",\n      \"countryName\": \"Italy\",\n      \"rows\": 1,\n      \"vat\": -9.9,\n      \"net\": -45\n    }\n  ],\n  \"totals\": {\n    \"rows\": 4,\n    \"countries\": 2,\n    \"net\": 2540,\n    \"vat\": 455.2,\n    \"correctionsVat\": -9.9,\n    \"vatPayable\": 445.3\n  },\n  \"byCountry\": [\n    {\n      \"country\": \"DE\",\n      \"countryName\": \"Germany\",\n      \"net\": 1560,\n      \"vat\": 259.2\n    },\n    {\n      \"country\": \"FR\",\n      \"countryName\": \"France\",\n      \"net\": 980,\n      \"vat\": 196\n    }\n  ],\n  \"rates\": {\n    \"verifiedOn\": \"2026-10-24\"\n  },\n  \"warnings\": [],\n  \"files\": [\n    {\n      \"id\": \"generic_csv\",\n      \"filename\": \"oss-return-union-2026-Q3-generic.csv\",\n      \"contentType\": \"text/csv; charset=utf-8\",\n      \"portal\": null,\n      \"content\": \"period,scheme,member_state,member_state_name,supply_type,rate_kind,rate_percent,taxable_amount_eur,vat_amount_eur,rows,correction_of_period\\r\\n2026-Q3,union,DE,Germany,goods,standard,19,1250.00,237.50,1,\\r\\n…\"\n    }\n  ],\n  \"portals\": [\n    {\n      \"memberState\": \"FR\",\n      \"portal\": \"impots.gouv.fr — guichet unique TVA (espace professionnel)\",\n      \"status\": \"generic\",\n      \"note\": \"No public file-import specification was found; key the lines in.\"\n    },\n    {\n      \"memberState\": \"DE\",\n      \"portal\": \"BZStOnline-Portal (Mein BOP)\",\n      \"status\": \"generic\",\n      \"note\": \"CSV import exists; its record layout is published only inside the logged-in form.\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "French companies",
+      "description": "French company-registry enrichment (SIREN / SIRET) from the open Recherche d’entreprises API and, with a key, the INSEE Sirene API; cached, normalised, sourced.",
+      "item": [
+        {
+          "name": "French company by SIREN or SIRET",
+          "id": "cfb53b47-499e-409d-8ebd-6b91aa441c4c",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fr/company/356000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fr",
+                "company",
+                "356000000"
+              ]
+            },
+            "description": "Looks the identifier up (spaces and dots removed; a French VAT number is accepted and its SIREN used), checks its Luhn key, then asks the open Recherche d'entreprises API (INSEE Sirene + INPI RNE data, 7 requests a second shared by everyone) and, when the operator has configured an INSEE key, the INSEE Sirene API for the unité légale. Answers are cached 7 days (served marked `stale` up to 30 days when the registries are down) and normalised: legal form, NAF code and section, status, address, headcount band, company category, establishments, the computed VAT number, officers where the open RNE data gives them. Every answer carries `source` (which APIs answered, cache hit and age) and `fetchedOn`. A SIRET answers the company with that establishment under `establishment`.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call (cached or live); 0 on 404 or 503. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The company.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/fr/company/356000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "fr",
+                    "company",
+                    "356000000"
+                  ]
+                },
+                "description": "Looks the identifier up (spaces and dots removed; a French VAT number is accepted and its SIREN used), checks its Luhn key, then asks the open Recherche d'entreprises API (INSEE Sirene + INPI RNE data, 7 requests a second shared by everyone) and, when the operator has configured an INSEE key, the INSEE Sirene API for the unité légale. Answers are cached 7 days (served marked `stale` up to 30 days when the registries are down) and normalised: legal form, NAF code and section, status, address, headcount band, company category, establishments, the computed VAT number, officers where the open RNE data gives them. Every answer carries `source` (which APIs answered, cache hit and age) and `fetchedOn`. A SIRET answers the company with that establishment under `establishment`.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call (cached or live); 0 on 404 or 503. Works without a key on the anonymous allowance (leave apiKey empty).",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"siren\": \"356000000\",\n  \"name\": \"LA POSTE\",\n  \"legalName\": \"LA POSTE\",\n  \"acronym\": null,\n  \"legalForm\": {\n    \"code\": \"5510\",\n    \"label\": \"SA nationale à conseil d’administration\"\n  },\n  \"naf\": {\n    \"code\": \"53.10Z\",\n    \"section\": \"H\",\n    \"sectionLabel\": \"Transportation and storage\"\n  },\n  \"status\": \"active\",\n  \"createdOn\": \"1991-01-01\",\n  \"ceasedOn\": null,\n  \"headcountBand\": {\n    \"code\": \"53\",\n    \"label\": \"10,000 employees or more\",\n    \"year\": \"2023\"\n  },\n  \"companyCategory\": {\n    \"code\": \"GE\",\n    \"label\": \"Large enterprise (GE)\",\n    \"year\": \"2023\"\n  },\n  \"employer\": true,\n  \"diffusion\": \"O\",\n  \"address\": {\n    \"street\": \"9 RUE DU COLONEL PIERRE AVIA\",\n    \"postalCode\": \"75015\",\n    \"city\": \"PARIS\",\n    \"cityCode\": \"75115\",\n    \"country\": \"FR\",\n    \"full\": \"9 RUE DU COLONEL PIERRE AVIA 75015 PARIS\"\n  },\n  \"headquarters\": {\n    \"siret\": \"35600000000048\",\n    \"isHeadquarters\": true,\n    \"status\": \"active\",\n    \"naf\": \"53.10Z\",\n    \"address\": {\n      \"street\": \"9 RUE DU COLONEL PIERRE AVIA\",\n      \"postalCode\": \"75015\",\n      \"city\": \"PARIS\",\n      \"cityCode\": \"75115\",\n      \"country\": \"FR\",\n      \"full\": \"9 RUE DU COLONEL PIERRE AVIA 75015 PARIS\"\n    },\n    \"createdOn\": \"2014-01-01\",\n    \"closedOn\": null,\n    \"tradeName\": null,\n    \"headcountBand\": null\n  },\n  \"establishment\": null,\n  \"establishments\": {\n    \"total\": 12345,\n    \"open\": 9876\n  },\n  \"vatNumber\": {\n    \"computed\": \"FR39356000000\",\n    \"activeNumbers\": [\n      \"FR39356000000\"\n    ],\n    \"note\": \"computed from the SIREN; validate it with GET /vat/validate before relying on it.\"\n  },\n  \"officers\": [\n    {\n      \"type\": \"person\",\n      \"name\": \"EXEMPLE\",\n      \"firstNames\": \"PRÉNOM\",\n      \"role\": \"Président du conseil d’administration\",\n      \"birthYear\": null,\n      \"nationality\": \"Française\",\n      \"siren\": null\n    }\n  ],\n  \"updatedOn\": {\n    \"registry\": \"2026-10-20\",\n    \"insee\": \"2026-10-19\",\n    \"rne\": \"2026-10-18\"\n  },\n  \"source\": {\n    \"primary\": \"recherche_entreprises\",\n    \"insee\": false,\n    \"openData\": [\n      \"recherche_entreprises\",\n      \"inpi_rne\"\n    ],\n    \"fetchedOn\": \"2026-10-24T09:14:03Z\",\n    \"cache\": {\n      \"hit\": false,\n      \"ageSeconds\": 0,\n      \"stale\": false\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Up to 100 French companies in one request",
+          "id": "e25420c0-859e-4241-89f5-e1bb0cac225b",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fr/company/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fr",
+                "company",
+                "bulk"
+              ]
+            },
+            "description": "Monthly plan only. Each identifier is answered as `GET /fr/company/{id}` would, in order; the upstream calls are paced inside the shared 7 requests a second of the open API (and 30 a minute for INSEE when configured), with cached answers served first. Each answered item counts one call; refused items are problem documents in place and cost nothing.\n\nTiers: plan. Cost: 1 call per answered item. Needs an API key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"356000000\",\n    \"35600000000048\",\n    \"FR40303265045\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Peppol",
+      "description": "Peppol participant lookup: whether a company is registered on the Peppol network and which documents it receives (Peppol BIS Billing 3.0 invoices, credit notes and others), from the SML, the participant’s SMP and the Peppol Directory, checked live and cached.",
+      "item": [
+        {
+          "name": "Can this company receive Peppol invoices?",
+          "id": "3e29a2c5-ddfb-43bf-83e9-4c7ca81cb396",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/peppol/participant?id=BE0202.239.951",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "peppol",
+                "participant"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "BE0202.239.951",
+                  "description": "(required) A Peppol participant identifier (ICD:value) or a Belgian enterprise or VAT number.",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Looks a participant up on the Peppol network as an access point does before it sends: the SML (DNS, U-NAPTR, zone `participant.sml.prod.tech.peppol.org`) says whether the identifier is registered and which SMP serves it; the SMP lists the document types it receives; the Peppol Directory adds the registered name when the participant's provider published a business card. `id` is a participant identifier (`0208:0202239951`, the ICD and the value; the `iso6523-actorid-upis::` prefix is optional) or a Belgian enterprise or VAT number in any usual form, which is looked up under both 0208 (enterprise number) and 9925 (VAT number) and checked against its mod-97 digits first. `receives` answers the sender's question for Peppol BIS Billing 3.0 (invoice, credit note), across every identifier; it is null when a registered participant's SMP did not answer and the others do not settle it. « Not registered » is an answer (200, counted). Answers are cached 6 hours (a registration takes up to a day to reach every resolver) and served marked `stale` up to 72 hours when the SML does not answer; otherwise 503, not counted. Discovery only: nothing is sent on the network.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call (cached or live); 0 on 400 or 503. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The participant, registered or not.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/peppol/participant?id=BE0202.239.951",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "peppol",
+                    "participant"
+                  ],
+                  "query": [
+                    {
+                      "key": "id",
+                      "value": "BE0202.239.951",
+                      "description": "(required) A Peppol participant identifier (ICD:value) or a Belgian enterprise or VAT number.",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Looks a participant up on the Peppol network as an access point does before it sends: the SML (DNS, U-NAPTR, zone `participant.sml.prod.tech.peppol.org`) says whether the identifier is registered and which SMP serves it; the SMP lists the document types it receives; the Peppol Directory adds the registered name when the participant's provider published a business card. `id` is a participant identifier (`0208:0202239951`, the ICD and the value; the `iso6523-actorid-upis::` prefix is optional) or a Belgian enterprise or VAT number in any usual form, which is looked up under both 0208 (enterprise number) and 9925 (VAT number) and checked against its mod-97 digits first. `receives` answers the sender's question for Peppol BIS Billing 3.0 (invoice, credit note), across every identifier; it is null when a registered participant's SMP did not answer and the others do not settle it. « Not registered » is an answer (200, counted). Answers are cached 6 hours (a registration takes up to a day to reach every resolver) and served marked `stale` up to 72 hours when the SML does not answer; otherwise 503, not counted. Discovery only: nothing is sent on the network.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call (cached or live); 0 on 400 or 503. Works without a key on the anonymous allowance (leave apiKey empty).",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"query\": {\n    \"kind\": \"be_enterprise\",\n    \"value\": \"0202239951\"\n  },\n  \"registered\": true,\n  \"receives\": {\n    \"invoice\": true,\n    \"creditNote\": true\n  },\n  \"participants\": [\n    {\n      \"id\": \"iso6523-actorid-upis::0208:0202239951\",\n      \"registered\": true,\n      \"smp\": \"https://smp.tickstar.com/peppol/\",\n      \"documentTypes\": [\n        {\n          \"id\": \"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1\",\n          \"label\": \"Peppol BIS Billing 3.0 invoice\",\n          \"billing\": \"invoice\"\n        },\n        {\n          \"id\": \"urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2::CreditNote##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1\",\n          \"label\": \"Peppol BIS Billing 3.0 credit note\",\n          \"billing\": \"credit_note\"\n        }\n      ]\n    },\n    {\n      \"id\": \"iso6523-actorid-upis::9925:be0202239951\",\n      \"registered\": true,\n      \"smp\": \"https://smp.tickstar.com/peppol/\",\n      \"documentTypes\": [\n        {\n          \"id\": \"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1\",\n          \"label\": \"Peppol BIS Billing 3.0 invoice\",\n          \"billing\": \"invoice\"\n        },\n        {\n          \"id\": \"urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2::CreditNote##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1\",\n          \"label\": \"Peppol BIS Billing 3.0 credit note\",\n          \"billing\": \"credit_note\"\n        }\n      ]\n    }\n  ],\n  \"businessCard\": {\n    \"name\": \"Proximus S.A.\",\n    \"countryCode\": \"BE\",\n    \"registeredOn\": \"2025-06-02\"\n  },\n  \"source\": {\n    \"sml\": \"participant.sml.prod.tech.peppol.org\",\n    \"directory\": true,\n    \"checkedAt\": \"2026-11-08T13:15:08Z\",\n    \"cache\": {\n      \"hit\": false,\n      \"ageSeconds\": 0,\n      \"stale\": false\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "US sales tax",
+      "description": "US sales-tax rates from public data: state rates for the 50 states + DC, ZIP-level combined averages where a revenue department publishes a ZIP file; coverage stated per answer.",
+      "item": [
+        {
+          "name": "US sales-tax rate for a ZIP code",
+          "id": "21ff7ac0-f326-4751-8b78-a5c93dacdcd8",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/us/sales-tax?zip=98101",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "us",
+                "sales-tax"
+              ],
+              "query": [
+                {
+                  "key": "zip",
+                  "value": "98101",
+                  "description": "(required) Five-digit ZIP; ZIP+4 accepted, the +4 is ignored.",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "State rate and, where the state's revenue department publishes an open ZIP-keyed file (OH, WA on 2026-10-24), the combined state + local rate averaged across the jurisdictions in the ZIP with its minimum and maximum. `coverage` says what you got: `zip_average`, `state_only` (state rate plus the statewide population-weighted average and maximum local rates, from the dated 51-row table), or `none` (unknown prefix, territory, military mail). Address-level jurisdiction assignment is not offered. Table verified 2026-10-24; next review 2027-01-15.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The lookup, with its coverage.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/us/sales-tax?zip=98101",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "us",
+                    "sales-tax"
+                  ],
+                  "query": [
+                    {
+                      "key": "zip",
+                      "value": "98101",
+                      "description": "(required) Five-digit ZIP; ZIP+4 accepted, the +4 is ignored.",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "State rate and, where the state's revenue department publishes an open ZIP-keyed file (OH, WA on 2026-10-24), the combined state + local rate averaged across the jurisdictions in the ZIP with its minimum and maximum. `coverage` says what you got: `zip_average`, `state_only` (state rate plus the statewide population-weighted average and maximum local rates, from the dated 51-row table), or `none` (unknown prefix, territory, military mail). Address-level jurisdiction assignment is not offered. Table verified 2026-10-24; next review 2027-01-15.\n\nTiers: anonymous, free, credits, plan. Cost: 1 call. Works without a key on the anonymous allowance (leave apiKey empty).",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"zip\": \"98101\",\n  \"state\": \"WA\",\n  \"stateName\": \"Washington\",\n  \"coverage\": \"zip_average\",\n  \"stateRate\": 6.5,\n  \"combined\": {\n    \"average\": 10.55,\n    \"min\": 10.55,\n    \"max\": 10.55,\n    \"jurisdictions\": 1,\n    \"period\": \"2026Q4\",\n    \"fetchedOn\": \"2026-10-24\",\n    \"method\": \"Average of the combined rates of the ZIP+4 ranges in the ZIP, weighted by range width; min and max over those ranges.\"\n  },\n  \"statewide\": null,\n  \"verifiedOn\": \"2026-10-24\",\n  \"nextReview\": \"2027-01-15\",\n  \"sources\": [\n    {\n      \"title\": \"Washington State Department of Revenue — downloadable database\",\n      \"url\": \"https://dor.wa.gov/taxes-rates/sales-use-tax-rates/downloadable-database\",\n      \"consulted\": \"2026-10-24\"\n    }\n  ],\n  \"notes\": [\n    \"Address-level jurisdiction assignment is not offered: a ZIP is a postal route, not a tax boundary.\"\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "E-invoices",
+      "description": "Compliant e-invoices from invoice JSON (XRechnung 3.0 UBL and CII, ZUGFeRD 2.x / Factur-X EN 16931, Peppol BIS Billing 3.0 with the Belgian rules), the official check of any e-invoice (XML schema plus the published CEN, XRechnung and Peppol schematron, run in-process), and the reading of a received one as JSON or a PDF. Nothing is sent on a network and no document is stored.",
+      "item": [
+        {
+          "name": "Create an e-invoice (XRechnung, ZUGFeRD / Factur-X, Peppol BIS)",
+          "id": "c09bf58b-69cf-47e4-809f-96d90e0acae9",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "",
+                "description": "Unique per request (`^[A-Za-z0-9_.:-]{1,128}$`). The same key, query and body within 24 hours replays the same file (`Idempotent-Replayed: true`), rebuilt from the request, not stored; another body under the key is 409."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/einvoice/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "einvoice",
+                "create"
+              ],
+              "query": [
+                {
+                  "key": "envelope",
+                  "value": "",
+                  "description": "`json`: { format, filename, contentType, size, file (base64), validation, defaults } instead of the file.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Send the invoice as JSON (the InvoiceInput schema: seller, buyer, lines, VAT, allowances and charges, payment, references) and `format`: `xrechnung-ubl` (XRechnung 3.0, UBL 2.1), `xrechnung-cii` (XRechnung 3.0, CII D16B), `zugferd` (ZUGFeRD 2.x / Factur-X 1.0, profile EN 16931: a PDF/A-3 with the CII embedded as factur-x.xml) or `peppol-bis` (Peppol BIS Billing 3.0, UBL 2.1, with the Belgian rules). The answer is the file itself, with its validation summary in the `Veriport-Validation` header; `?envelope=json` returns { file (base64), contentType, validation, defaults } instead.\n\nNothing is ever dropped silently: every field of the input is written, or the request is refused with 422 `einvoice_unsupported` naming the feature and its path (`feature`, `path`, `unsupported[]`). The input is checked against the engine's rules first (422 `einvoice_invalid` with the published rule ids and the JSON paths), the arithmetic is computed (line nets, VAT per breakdown, totals), the file is written, and the file is then run through the XML schema and the official schematron (CEN EN 16931 1.3.16, XRechnung 3.0.2, Peppol BIS 3.0.21); a fatal finding there withholds the file. Every value the engine adds (a VATEX code for reverse charge, the § 19 UStG mention, a 0208 Peppol address, a due date from paymentTermsDays) is listed in `defaults` and counted in the `Veriport-Defaults` header.\n\nv1 writes: EUR; a seller in Germany (XRechnung, ZUGFeRD) or Belgium (Peppol BIS); a buyer in any EU member state; VAT categories S, Z, E, AE and K; invoice 380, credit note 381, corrected invoice 384; SEPA credit transfer or credit transfer; up to 500 lines; document-level allowances and charges. It does not send the invoice (no Peppol access point), does not store it, and gives no tax advice. Up to 4.5 MB (4500000 bytes) per request. Send an `Idempotency-Key` (1–128 characters): a retry replays the same file without a second charge for 24 hours; nothing of the invoice is kept for that, only the time of the first build.\n\nTiers: free, credits, plan. Cost: 20 calls per produced file; 0 when refused (400, 413, 422) and on an Idempotency-Key replay. Needs an API key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": \"2026-017\",\n  \"issueDate\": \"2026-10-20\",\n  \"paymentTermsDays\": 14,\n  \"buyerReference\": \"EK-2026-0345\",\n  \"deliveryDate\": \"2026-10-15\",\n  \"seller\": {\n    \"name\": \"Lena Hartmann — Webdesign\",\n    \"address\": {\n      \"street\": \"Lindenstraße 14\",\n      \"postalCode\": \"10969\",\n      \"city\": \"Berlin\",\n      \"countryCode\": \"DE\"\n    },\n    \"vatId\": \"DE136695976\",\n    \"contact\": {\n      \"name\": \"Lena Hartmann\",\n      \"phone\": \"+49 30 1234567\",\n      \"email\": \"rechnung@hartmann-webdesign.example\"\n    }\n  },\n  \"buyer\": {\n    \"name\": \"Mustermann Maschinenbau GmbH\",\n    \"address\": {\n      \"street\": \"Industrieweg 7\",\n      \"postalCode\": \"70565\",\n      \"city\": \"Stuttgart\",\n      \"countryCode\": \"DE\"\n    },\n    \"contact\": {\n      \"email\": \"buchhaltung@mustermann.example\"\n    }\n  },\n  \"payment\": {\n    \"iban\": \"DE02120300000000202051\"\n  },\n  \"lines\": [\n    {\n      \"name\": \"Relaunch Website, Konzeption und Umsetzung\",\n      \"quantity\": 24,\n      \"unitCode\": \"HUR\",\n      \"unitPrice\": 95,\n      \"vat\": {\n        \"category\": \"S\",\n        \"rate\": 19\n      }\n    },\n    {\n      \"name\": \"Lizenz Bildmaterial\",\n      \"quantity\": 1,\n      \"unitCode\": \"C62\",\n      \"unitPrice\": 128.4,\n      \"vat\": {\n        \"category\": \"S\",\n        \"rate\": 19\n      }\n    }\n  ],\n  \"format\": \"xrechnung-ubl\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validate an e-invoice against the official rules",
+          "id": "bea90aa2-07a1-41fc-893e-aaa1a658fa39",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "*/*"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/einvoice/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "einvoice",
+                "validate"
+              ]
+            },
+            "description": "Send an XRechnung, Peppol BIS or EN 16931 XML (UBL 2.1 Invoice or CreditNote, UN/CEFACT CII D16B) or a ZUGFeRD / Factur-X hybrid PDF, as the raw body (Content-Type application/xml or application/pdf) or as the `file` field of multipart/form-data. The XML schema and the official schematron of the document's profile run in-process: CEN EN 16931 1.3.16 always, XRechnung 3.0.2 (2.6.0) for an XRechnung, Peppol BIS Billing 3.0.21 for a Peppol document, with the severities of the KoSIT XRechnung configuration. Rule ids and messages are the published ones (CEN and Peppol in English, the XRechnung BR-DE rules in German); Veriport's own checks of national practice (VP-DE-*, VP-BE-*, VP-EU-*) come as warnings only. The evidence that this check names the same rules as the KoSIT validator, file by file, is at /einvoice-api. Not checked: PDF/A-3 conformance of a hybrid PDF (`checks.pdfa`: not_checked), Factur-X MINIMUM, BASIC WL and EXTENDED profiles (422 einvoice_unsupported). Without a key, 4 checks a day per address. The document is not stored.\n\nTiers: anonymous, free, credits, plan. Cost: 5 calls per report (valid or not); 0 for an unreadable file or an unsupported profile. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The validation report (`valid: false` with the errors when the document breaks a rule).",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "*/*"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/xml"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/einvoice/validate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "einvoice",
+                    "validate"
+                  ]
+                },
+                "description": "Send an XRechnung, Peppol BIS or EN 16931 XML (UBL 2.1 Invoice or CreditNote, UN/CEFACT CII D16B) or a ZUGFeRD / Factur-X hybrid PDF, as the raw body (Content-Type application/xml or application/pdf) or as the `file` field of multipart/form-data. The XML schema and the official schematron of the document's profile run in-process: CEN EN 16931 1.3.16 always, XRechnung 3.0.2 (2.6.0) for an XRechnung, Peppol BIS Billing 3.0.21 for a Peppol document, with the severities of the KoSIT XRechnung configuration. Rule ids and messages are the published ones (CEN and Peppol in English, the XRechnung BR-DE rules in German); Veriport's own checks of national practice (VP-DE-*, VP-BE-*, VP-EU-*) come as warnings only. The evidence that this check names the same rules as the KoSIT validator, file by file, is at /einvoice-api. Not checked: PDF/A-3 conformance of a hybrid PDF (`checks.pdfa`: not_checked), Factur-X MINIMUM, BASIC WL and EXTENDED profiles (422 einvoice_unsupported). Without a key, 4 checks a day per address. The document is not stored.\n\nTiers: anonymous, free, credits, plan. Cost: 5 calls per report (valid or not); 0 for an unreadable file or an unsupported profile. Works without a key on the anonymous allowance (leave apiKey empty).",
+                "auth": {
+                  "type": "noauth"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "xml"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"valid\": true,\n  \"profile\": \"xrechnung\",\n  \"format\": \"xrechnung-ubl\",\n  \"syntax\": \"ubl\",\n  \"container\": \"xml\",\n  \"attachment\": null,\n  \"errors\": [],\n  \"warnings\": [],\n  \"checks\": {\n    \"schema\": {\n      \"status\": \"passed\",\n      \"name\": \"UBL 2.1 (OASIS) and UN/CEFACT CII D16B XML schemas, from the KoSIT XRechnung validator configuration v2026-08-31\"\n    },\n    \"ruleSets\": [\n      {\n        \"id\": \"cen-ubl\",\n        \"name\": \"CEN EN 16931 validation artefacts (UBL)\",\n        \"release\": \"1.3.16\",\n        \"sha256\": \"bafada015efbc5248bf5e05ad2191e1d9833ef96e9dd5f4bce420a747342da85\",\n        \"fatal\": 0,\n        \"warnings\": 0\n      },\n      {\n        \"id\": \"xrechnung-ubl\",\n        \"name\": \"XRechnung 3.0.2 schematron (UBL)\",\n        \"release\": \"2.6.0\",\n        \"sha256\": \"ca5e07afd04e72cd283d581590ffff3a15f4aac9d2f40c993345d78e67ea22b4\",\n        \"fatal\": 0,\n        \"warnings\": 0\n      }\n    ],\n    \"pdfa\": null,\n    \"veriport\": 0\n  },\n  \"ms\": 84\n}"
+            }
+          ]
+        },
+        {
+          "name": "Read an e-invoice as invoice JSON or a readable PDF",
+          "id": "a83e2162-6a3e-4934-8c4a-acbeda998e10",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "*/*"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/xml"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/einvoice/parse",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "einvoice",
+                "parse"
+              ],
+              "query": [
+                {
+                  "key": "as",
+                  "value": "",
+                  "description": "`json` (default) or `pdf` (a readable copy).",
+                  "disabled": true
+                },
+                {
+                  "key": "lang",
+                  "value": "",
+                  "description": "Labels of the readable PDF: de, en, fr, nl (default from the seller’s country).",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Send an XML or hybrid PDF e-invoice (raw body or the `file` field of multipart/form-data). The answer is the invoice in the create model (the same JSON POST /einvoice/create accepts), its format and profile, and `notInJson`: everything the document holds that the JSON does not (attachments, line periods, a paid amount, other payment means, totals that differ from the recomputation…), so nothing is dropped silently. A file the API wrote parses with an empty list and writes the same file again. `?as=pdf` returns a readable PDF/A-3 copy instead (`?lang=de|en|fr|nl`). The document is not stored.\n\nTiers: free, credits, plan. Cost: 5 calls per answer; 0 for an unreadable file. Needs an API key.",
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 — The invoice JSON (or the PDF with ?as=pdf).",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "*/*"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/xml"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/einvoice/parse",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "einvoice",
+                    "parse"
+                  ],
+                  "query": [
+                    {
+                      "key": "as",
+                      "value": "",
+                      "description": "`json` (default) or `pdf` (a readable copy).",
+                      "disabled": true
+                    },
+                    {
+                      "key": "lang",
+                      "value": "",
+                      "description": "Labels of the readable PDF: de, en, fr, nl (default from the seller’s country).",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Send an XML or hybrid PDF e-invoice (raw body or the `file` field of multipart/form-data). The answer is the invoice in the create model (the same JSON POST /einvoice/create accepts), its format and profile, and `notInJson`: everything the document holds that the JSON does not (attachments, line periods, a paid amount, other payment means, totals that differ from the recomputation…), so nothing is dropped silently. A file the API wrote parses with an empty list and writes the same file again. `?as=pdf` returns a readable PDF/A-3 copy instead (`?lang=de|en|fr|nl`). The document is not stored.\n\nTiers: free, credits, plan. Cost: 5 calls per answer; 0 for an unreadable file. Needs an API key.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "xml"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"invoice\": {\n    \"format\": \"xrechnung-ubl\",\n    \"type\": \"invoice\",\n    \"number\": \"2026-017\",\n    \"issueDate\": \"2026-10-20\",\n    \"dueDate\": \"2026-11-03\",\n    \"currency\": \"EUR\",\n    \"buyerReference\": \"EK-2026-0345\",\n    \"deliveryDate\": \"2026-10-15\",\n    \"seller\": {\n      \"name\": \"Lena Hartmann — Webdesign\",\n      \"address\": {\n        \"street\": \"Lindenstraße 14\",\n        \"city\": \"Berlin\",\n        \"postalCode\": \"10969\",\n        \"countryCode\": \"DE\"\n      },\n      \"vatId\": \"DE136695976\",\n      \"electronicAddress\": {\n        \"scheme\": \"EM\",\n        \"id\": \"rechnung@hartmann-webdesign.example\"\n      },\n      \"contact\": {\n        \"name\": \"Lena Hartmann\",\n        \"phone\": \"+49 30 1234567\",\n        \"email\": \"rechnung@hartmann-webdesign.example\"\n      },\n      \"vatScheme\": \"standard\"\n    },\n    \"buyer\": {\n      \"name\": \"Mustermann Maschinenbau GmbH\",\n      \"address\": {\n        \"street\": \"Industrieweg 7\",\n        \"city\": \"Stuttgart\",\n        \"postalCode\": \"70565\",\n        \"countryCode\": \"DE\"\n      },\n      \"electronicAddress\": {\n        \"scheme\": \"EM\",\n        \"id\": \"buchhaltung@mustermann.example\"\n      },\n      \"contact\": {\n        \"email\": \"buchhaltung@mustermann.example\"\n      }\n    },\n    \"payment\": {\n      \"means\": \"sepa_credit_transfer\",\n      \"iban\": \"DE02120300000000202051\"\n    },\n    \"lines\": [\n      {\n        \"id\": \"1\",\n        \"name\": \"Relaunch Website, Konzeption und Umsetzung\",\n        \"quantity\": 24,\n        \"unitCode\": \"HUR\",\n        \"unitPrice\": 95,\n        \"vat\": {\n          \"category\": \"S\",\n          \"rate\": 19\n        }\n      },\n      {\n        \"id\": \"2\",\n        \"name\": \"Lizenz Bildmaterial\",\n        \"quantity\": 1,\n        \"unitCode\": \"C62\",\n        \"unitPrice\": 128.4,\n        \"vat\": {\n          \"category\": \"S\",\n          \"rate\": 19\n        }\n      }\n    ]\n  },\n  \"format\": \"xrechnung-ubl\",\n  \"formatLabel\": \"XRechnung 3.0 (UBL 2.1)\",\n  \"profile\": \"xrechnung\",\n  \"syntax\": \"ubl\",\n  \"container\": \"xml\",\n  \"attachment\": null,\n  \"notInJson\": []\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "description": "Your key, tier and usage.",
+      "item": [
+        {
+          "name": "Your key, tier, usage and credits",
+          "id": "78f9093a-5a0c-44c8-8e7e-514c7831cfa0",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "Does not count as a call. Shows the calendar month’s usage against the allowance, the credit balance and its earliest expiry, and the plan status.\n\nTiers: free, credits, plan. Cost: 0. Needs an API key."
+          },
+          "response": [
+            {
+              "name": "200 — The account view.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "me"
+                  ]
+                },
+                "description": "Does not count as a call. Shows the calendar month’s usage against the allowance, the credit balance and its earliest expiry, and the plan status.\n\nTiers: free, credits, plan. Cost: 0. Needs an API key."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"keyPrefix\": \"vp_live_3f9a\",\n  \"tier\": \"free\",\n  \"createdAt\": \"2026-10-24T09:00:00Z\",\n  \"month\": \"2026-10\",\n  \"usage\": {\n    \"calls\": 12,\n    \"allowance\": 100,\n    \"remaining\": 88,\n    \"byEndpoint\": {\n      \"vat/validate\": 9,\n      \"iban/validate\": 3\n    }\n  },\n  \"credits\": {\n    \"remaining\": 0,\n    \"earliestExpiry\": null\n  },\n  \"plan\": null,\n  \"limits\": {\n    \"rps\": 2,\n    \"bulk\": false,\n    \"consultationNumber\": false\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Status",
+      "description": "Self-reported status and upstream availability.",
+      "item": [
+        {
+          "name": "Service status and upstream availability",
+          "id": "c848aed4-c7e3-4b01-809a-8244495e8e01",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "status"
+              ]
+            },
+            "description": "Self-reported component status plus the Commission’s VIES availability per member state (`check-status`, cached five minutes). Does not count as a call and needs no key; it takes no parameter, so the only refusal is the per-address pace (one request a second, the anonymous rate), answered 429 with the RateLimit-* headers like every other endpoint.\n\nTiers: anonymous, free, credits, plan. Cost: 0. Works without a key on the anonymous allowance (leave apiKey empty).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

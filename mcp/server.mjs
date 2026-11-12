@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Veriport MCP server (stdio): four tools over the public API, no
+ * Veriport MCP server (stdio): six tools over the public API, no
  * dependency, Node 18+. Speaks the Model Context Protocol over newline-
  * delimited JSON-RPC on stdin/stdout (initialize, tools/list, tools/call,
  * ping). The API key is optional: without it the API answers a small daily
@@ -27,10 +27,11 @@ export const TOOLS = [
         number: { type: 'string', description: 'The VAT number, with or without the two-letter prefix, spaces or dots allowed (e.g. "DE136695976").' },
         country: { type: 'string', description: 'Two-letter member-state code when the number has no prefix.' },
         requester: { type: 'string', description: 'Your own EU VAT number, to obtain a VIES consultation number (paid tiers).' },
+        record: { type: 'boolean', description: 'Keep this validation as a stored record on the account (paid tiers).' },
       },
       required: ['number'],
     },
-    call: (a) => get('/vat/validate', { number: a.number, country: a.country, requester: a.requester }),
+    call: (a) => get('/vat/validate', { number: a.number, country: a.country, requester: a.requester, record: a.record }),
   },
   {
     name: 'validate_iban',
@@ -70,6 +71,37 @@ export const TOOLS = [
       for (const e of (r.errors ?? []).slice(0, 20)) lines.push(`- ${e.rule} at ${e.path}: ${e.message}`);
       if ((r.errors?.length ?? 0) > 20) lines.push(`- … ${r.errors.length - 20} more`);
       return lines.join('\n');
+    },
+  },
+  {
+    name: 'french_company',
+    title: 'French company by SIREN or SIRET',
+    description: 'Reads a French company from the official registries (the open Recherche d\'entreprises API, INSEE Sirene as a fallback): legal name, legal form, NAF activity, status (active or ceased) and dates, head-office address, the establishment asked for when a SIRET is given, and the intra-community VAT number computed from the SIREN with the numbers VIES confirms. Give a SIREN (9 digits) or a SIRET (14 digits), spaces allowed. A ceased company is an answer, not an error. 1 call.',
+    inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'A SIREN (9 digits) or SIRET (14 digits), e.g. "356000000" or "356 000 000 00048".' } }, required: ['id'] },
+    check: (a) => (/^\d{9}(\d{5})?$/.test(String(a.id).replace(/[\s.]/g, '')) ? null : 'id must be a SIREN (9 digits) or a SIRET (14 digits).'),
+    call: (a) => get(`/fr/company/${encodeURIComponent(String(a.id).replace(/[\s.]/g, ''))}`, {}),
+    summary: (r) => {
+      const name = r.name ?? r.legalName ?? r.siren;
+      const where = r.address?.full ?? [r.address?.postalCode, r.address?.city].filter(Boolean).join(' ');
+      const lines = [`${name} (SIREN ${r.siren}): ${r.status === 'ceased' ? `CEASED${r.ceasedOn ? ` on ${r.ceasedOn}` : ''}` : r.status === 'active' ? 'active' : 'status unknown'}${r.legalForm?.label ? `, ${r.legalForm.label}` : ''}${r.naf?.code ? `, NAF ${r.naf.code}` : ''}.`];
+      if (where) lines.push(`Head office: ${where}`);
+      if (r.establishment) lines.push(`Establishment ${r.establishment.siret}${r.establishment.status ? ` (${r.establishment.status})` : ''}`);
+      if (r.vatNumber?.computed) lines.push(`VAT number (computed): ${r.vatNumber.computed}`);
+      if (r.source?.fetchedOn) lines.push(`Source: ${r.source.primary}, read ${r.source.fetchedOn}${r.source.cache?.stale ? ' (stale cache: the registries did not answer)' : ''}.`);
+      return lines.join('\n');
+    },
+  },
+  {
+    name: 'peppol_participant',
+    title: 'Can this company receive Peppol invoices?',
+    description: 'Looks a company up on the Peppol network the way an access point does before it sends: whether its identifier is registered (Peppol SML), which documents it receives (its SMP: Peppol BIS Billing 3.0 invoices and credit notes, and others) and its registered name when its provider published one (Peppol Directory). Give a participant identifier (ICD:value, e.g. "0208:0202239951" or "9930:de136695976") or a Belgian enterprise or VAT number in any form ("BE 0202.239.951"), which is looked up under both 0208 and 9925. receives.invoice / receives.creditNote answer the sender\'s question. « Not registered » is an answer. 1 call; nothing is sent on the network.',
+    inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'A Peppol participant identifier (ICD:value) or a Belgian enterprise or VAT number.' } }, required: ['id'] },
+    call: (a) => get('/peppol/participant', { id: a.id }),
+    summary: (r) => {
+      const who = r.businessCard ? `${r.businessCard.name} (${r.businessCard.countryCode ?? '?'})` : r.query?.value;
+      if (!r.registered) return `${who}: NOT registered on Peppol under ${(r.participants ?? []).map((p) => p.id).join(' or ')}.`;
+      const recv = r.receives ? `invoices ${r.receives.invoice ? 'yes' : 'no'}, credit notes ${r.receives.creditNote ? 'yes' : 'no'} (Peppol BIS Billing 3.0)` : 'document types unknown (an SMP did not answer)';
+      return [`${who}: registered on Peppol; ${recv}.`, ...(r.participants ?? []).filter((p) => p.registered).map((p) => `- ${p.id} via ${p.smp}: ${(p.documentTypes ?? []).map((d) => d.label ?? d.id).join('; ') || 'no document types listed'}`)].join('\n');
     },
   },
 ];

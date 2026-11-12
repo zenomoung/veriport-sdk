@@ -1,0 +1,26 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.veriport/veriport",
+  "title": "Veriport: EU VAT number, IBAN, VAT rates and e-invoice checks",
+  "description": "EU VAT numbers on VIES, IBANs, French companies, Peppol IDs, EU VAT rates and e-invoice validation.",
+  "repository": {
+    "url": "https://github.com/zenomoung/veriport-sdk",
+    "source": "github",
+    "subfolder": "mcp"
+  },
+  "websiteUrl": "https://veriport.io/docs",
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@veriport/mcp",
+      "version": "0.1.0",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        { "name": "VERIPORT_API_KEY", "description": "Your Veriport API key (vp_live_…, free at https://veriport.io/signup). Optional: without it the API answers 20 calls a day per address.", "isRequired": false, "isSecret": true },
+        { "name": "VERIPORT_API_BASE", "description": "The API base URL; defaults to https://veriport.io/api/v1.", "isRequired": false, "isSecret": false }
+      ]
+    }
+  ]
+}

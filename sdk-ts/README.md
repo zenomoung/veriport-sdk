@@ -28,6 +28,7 @@ const fr = await vp.vatRate('FR');
 console.log(fr.standard, fr.verifiedOn, fr.sources);
 
 const company = await vp.frCompany('356000000');
+const peppol = await vp.peppolParticipant('BE 0202.239.951'); // peppol.receives.invoice
 console.log(company.name, company.status, company.source.primary);
 ```
 
@@ -109,6 +110,14 @@ try {
 - `consultationNumber` is returned on the paid tiers when you pass your own VAT number as `requester`: it is the reference a tax audit accepts.
 - An IBAN that passes is well formed; existence and ownership of the account are the bank's knowledge, not anyone's API.
 - Rates rows carry `verifiedOn` and `sources[]`: the day each row was last read and where.
+
+## Examples
+
+`examples/validate-vat.mjs` (one number, provenance printed), `examples/check-iban-offline.mjs` (the MIT offline check, then the API), `examples/bulk-from-csv.mjs` (a paced loop over a CSV, impossible numbers skipped for free, a retry list for the member states that are down). Run them with `node examples/<file> …` after `npm install @veriport/sdk`; set `VERIPORT_KEY` for 100 calls a month and `MY_VAT_NUMBER` for consultation numbers on a paid tier.
+
+## Status and links
+
+Version 0.1.0, MIT, Node 18+. Source and issues: https://github.com/zenomoung/veriport-sdk (folder `sdk-ts`). API documentation: https://veriport.io/docs; OpenAPI: https://veriport.io/openapi.json; changelog: https://veriport.io/changelog; VIES availability by member state: https://veriport.io/vies-status. The Python client is `veriport` on PyPI; the MCP server for agents is `@veriport/mcp`.
 
 ## Development
 

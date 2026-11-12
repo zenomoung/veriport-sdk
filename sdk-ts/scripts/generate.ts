@@ -82,7 +82,7 @@ function generateOpenApi(doc: OpenApiDocument): string {
     iface.push(`  ${id}: { params: ${P}Params; body: ${P}Body; response: ${P}Response };`);
   }
   lines.push('/** Each operation: its parameter, body and response types. */', `export interface Operations {\n${iface.join('\n')}\n}`, '');
-  lines.push('export interface OperationSpec { method: "GET" | "POST"; path: string; pathParams: string[]; query: string[]; hasBody: boolean; bodyTypes: string[]; anonymous: boolean; tiers: string[]; cost: string }', '');
+  lines.push('export interface OperationSpec { method: "GET" | "POST" | "DELETE"; path: string; pathParams: string[]; query: string[]; hasBody: boolean; bodyTypes: string[]; anonymous: boolean; tiers: string[]; cost: string }', '');
   lines.push('/** The routing table of the client: how each operation is sent. */', `export const OPERATIONS: Record<keyof Operations, OperationSpec> = {\n${table.join('\n')}\n};`, '');
   return lines.join('\n');
 }

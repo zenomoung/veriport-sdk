@@ -1,6 +1,6 @@
 # veriport
 
-Python client for the [Veriport API](https://veriport.io/docs): EU VAT number validation on VIES with a dated cache, EU VAT rates dated and sourced per row, IBAN validation from the SWIFT registry, French company data by SIREN/SIRET. One dependency (`httpx`), sync and async, Python 3.9+.
+Python client for the [Veriport API](https://veriport.io/docs): EU VAT number validation on VIES with a dated cache, EU VAT rates dated and sourced per row, IBAN validation from the SWIFT registry, French company data by SIREN/SIRET, and compliant e-invoices (XRechnung, ZUGFeRD / Factur-X, Peppol BIS: create, validate against the official rules, parse). One dependency (`httpx`), sync and async, Python 3.9+.
 
 It also ships the **offline** parts of the checks (MIT): the structure of the 28 EU VAT number formats and the full IBAN check (characters, country, length, ISO 7064 mod 97-10, BBAN pattern, bank and branch identifiers, SEPA flag) for the 88 countries of the registry, so that an impossible number never costs a call. The tables are generated from the same source the API uses.
 
@@ -26,6 +26,7 @@ fr = vp.vat_rate("FR")
 print(fr["standard"], fr["verifiedOn"], fr["sources"])
 
 company = vp.fr_company("356000000")
+peppol = vp.peppol_participant("BE 0202.239.951")  # peppol["receives"]["invoice"]
 print(company["name"], company["status"], company["source"]["primary"])
 ```
 
@@ -95,6 +96,14 @@ except VeriportError as e:
 - `consultationNumber` is returned on the paid tiers when you pass your own VAT number as `requester`: the reference a tax audit accepts.
 - An IBAN that passes is well formed; existence and ownership of the account are the bank's knowledge.
 - Rates rows carry `verifiedOn` and `sources`: the day each row was last read and where.
+
+## Examples
+
+`examples/validate_vat.py` (one number, provenance printed), `examples/check_iban_offline.py` (the MIT offline check), `examples/bulk_from_csv.py` (a paced loop over a CSV, impossible numbers skipped for free, a retry list for the member states that are down). Run them with `python examples/<file> …` after `pip install veriport`; set `VERIPORT_KEY` for 100 calls a month and `MY_VAT_NUMBER` for consultation numbers on a paid tier.
+
+## Status and links
+
+Version 0.1.0, MIT, Python 3.9+, one dependency (`httpx`). Source and issues: https://github.com/zenomoung/veriport-sdk (folder `sdk-python`). API documentation: https://veriport.io/docs; OpenAPI: https://veriport.io/openapi.json; changelog: https://veriport.io/changelog; VIES availability by member state: https://veriport.io/vies-status. The TypeScript client is `@veriport/sdk` on npm; the MCP server for agents is `@veriport/mcp`.
 
 ## Development
 
