@@ -9,13 +9,13 @@
     "subfolder": "mcp"
   },
   "websiteUrl": "https://veriport.io/docs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@veriport/mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "transport": { "type": "stdio" },
       "environmentVariables": [
         { "name": "VERIPORT_API_KEY", "description": "Your Veriport API key (vp_live_…, free at https://veriport.io/signup). Optional: without it the API answers 20 calls a day per address.", "isRequired": false, "isSecret": true },

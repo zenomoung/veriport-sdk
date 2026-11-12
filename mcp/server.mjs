@@ -9,12 +9,14 @@
  *   VERIPORT_API_KEY   vp_live_… (optional)
  *   VERIPORT_API_BASE  defaults to https://veriport.io/api/v1
  */
+import { realpathSync } from 'node:fs';
 import { createInterface } from 'node:readline';
+import { fileURLToPath } from 'node:url';
 
 const API_BASE = (process.env.VERIPORT_API_BASE ?? 'https://veriport.io/api/v1').replace(/\/$/, '');
 const API_KEY = process.env.VERIPORT_API_KEY ?? '';
 const PROTOCOL_VERSION = '2025-06-18';
-const SERVER = { name: 'veriport', version: '0.1.0', title: 'Veriport: EU VAT number, IBAN, VAT rates and e-invoice checks' };
+const SERVER = { name: 'veriport', version: '0.1.1', title: 'Veriport: EU VAT number, IBAN, VAT rates and e-invoice checks' };
 
 export const TOOLS = [
   {
@@ -200,4 +202,18 @@ export function serve(input = process.stdin, output = process.stdout) {
   });
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) serve();
+/**
+ * Serve when this file is the program, not when a test imports it. Compare real paths: `npx @veriport/mcp` and any
+ * installed `veriport-mcp` start it through node_modules/.bin, a symlink, so argv[1] is not this file's own path
+ * (0.1.0 compared them as given and stayed silent when installed; fixed in 0.1.1).
+ */
+function isProgram() {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isProgram()) serve();

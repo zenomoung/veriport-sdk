@@ -49,8 +49,8 @@ async function fakeApi() {
 }
 
 /** Spawns the server over stdio and returns a request() that resolves the answer with the same id. */
-function client(env) {
-  const proc = spawn(process.execPath, [fileURLToPath(new URL('../server.mjs', import.meta.url))], { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'inherit'] });
+function client(env, entry = fileURLToPath(new URL('../server.mjs', import.meta.url))) {
+  const proc = spawn(process.execPath, [entry], { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'inherit'] });
   const waiting = new Map();
   let buffer = '';
   proc.stdout.on('data', (chunk) => {
@@ -148,5 +148,22 @@ test('initialize, tools/list, tools/call (validate_einvoice included) over stdio
   } finally {
     c.close();
     api.server.close();
+  }
+});
+
+test('serves when started through a symlink, as npx and node_modules/.bin start it', async () => {
+  const { mkdtempSync, symlinkSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = mkdtempSync(join(tmpdir(), 'veriport-mcp-bin-'));
+  const link = join(dir, 'veriport-mcp');
+  symlinkSync(fileURLToPath(new URL('../server.mjs', import.meta.url)), link);
+  const c = client({}, link);
+  try {
+    const init = await c.request('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 't', version: '1' } });
+    assert.equal(init.result.serverInfo.name, 'veriport');
+  } finally {
+    c.close();
+    rmSync(dir, { recursive: true, force: true });
   }
 });
